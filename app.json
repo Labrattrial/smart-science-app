@@ -20,10 +20,21 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.molecule_simulator",
+      "softwareKeyboardLayoutMode": "pan",
+      "immersive": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6019b5e3-ee63-43f4-9823-27e9c605bc8a"
+      }
+    },
+    "plugins": [
+      "expo-audio"
+    ]
   }
 }
