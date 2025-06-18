@@ -455,7 +455,7 @@ export default function MoleculeSimRow() {
                 />
               </AnimatedG>
               <SvgText
-                fill={theme.arrowRed}
+                fill={isDarkTheme ? '#FFFFFF' : theme.arrowRed}
                 fontSize={fontArrowLabelLarge}
                 fontWeight="bold"
                 x={totalRowWidth / 2}
@@ -478,7 +478,7 @@ export default function MoleculeSimRow() {
               </View>
 
               <View style={styles.horizontalArrowContainer}>
-                <Svg width="100" height="80">
+                <Svg width="120" height="100">
                   <Defs>
                     <Marker id="arrowheadRedH" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
                       <Path d="M 0 0 L 10 5 L 0 10 z" fill={theme.arrowRed || '#FF4D4D'} stroke={theme.arrowRedSecondary || '#FF8080'} strokeWidth="0.5" />
@@ -508,14 +508,14 @@ export default function MoleculeSimRow() {
                   {/* Melting */}
                   <AnimatedG animatedProps={arrowGlowProps}>
                     <Path
-                      d="M 0 15 L 95 15"
+                      d="M 10 25 L 110 25"
                       stroke={theme.arrowRed}
                       strokeWidth="3"
                       fill="none"
                       markerEnd="url(#arrowheadRedH)"
                     />
                     <AnimatedPath
-                      d="M 0 15 L 95 15"
+                      d="M 10 25 L 110 25"
                       stroke="url(#redParticleGradientH)"
                       strokeWidth="6"
                       strokeDasharray="30,1000"
@@ -524,11 +524,11 @@ export default function MoleculeSimRow() {
                     />
                   </AnimatedG>
                   <SvgText
-                    fill={theme.arrowRed}
+                    fill={isDarkTheme ? '#FFFFFF' : theme.arrowRed}
                     fontSize={fontArrowLabel}
                     fontWeight="bold"
-                    x="50"
-                    y="8"
+                    x="60"
+                    y="18"
                     textAnchor="middle"
                     style={styles.arrowLabel}
                   >
@@ -538,14 +538,14 @@ export default function MoleculeSimRow() {
                   {/* Freezing */}
                   <AnimatedG animatedProps={blueArrowGlowProps}>
                     <Path
-                      d="M 0 50 L 95 50"
+                      d="M 10 65 L 110 65"
                       stroke={theme.arrowBlue}
                       strokeWidth="3"
                       fill="none"
                       markerStart="url(#arrowheadBlueH)"
                     />
                     <AnimatedPath
-                      d="M 0 50 L 95 50"
+                      d="M 10 65 L 110 65"
                       stroke="url(#blueParticleGradientH)"
                       strokeWidth="6"
                       strokeDasharray="30,1000"
@@ -554,11 +554,11 @@ export default function MoleculeSimRow() {
                     />
                   </AnimatedG>
                   <SvgText
-                    fill={theme.arrowBlue}
+                    fill={isDarkTheme ? '#FFFFFF' : theme.arrowBlue}
                     fontSize={fontArrowLabel}
                     fontWeight="bold"
-                    x="50"
-                    y="40"
+                    x="60"
+                    y="85"
                     textAnchor="middle"
                     style={styles.arrowLabel}
                   >
@@ -577,7 +577,7 @@ export default function MoleculeSimRow() {
               </View>
 
               <View style={styles.horizontalArrowContainer}>
-                <Svg width="100" height="80">
+                <Svg width="120" height="100">
                   <Defs>
                     <Marker id="arrowheadRedH" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
                       <Path d="M 0 0 L 10 5 L 0 10 z" fill={theme.arrowRed || '#FF4D4D'} stroke={theme.arrowRedSecondary || '#FF8080'} strokeWidth="0.5" />
@@ -607,14 +607,14 @@ export default function MoleculeSimRow() {
                   {/* Evaporation */}
                   <AnimatedG animatedProps={arrowGlowProps}>
                     <Path
-                      d="M 0 15 L 95 15"
+                      d="M 10 25 L 110 25"
                       stroke={theme.arrowRed}
                       strokeWidth="3"
                       fill="none"
                       markerEnd="url(#arrowheadRedH)"
                     />
                     <AnimatedPath
-                      d="M 0 15 L 95 15"
+                      d="M 10 25 L 110 25"
                       stroke="url(#redParticleGradientH)"
                       strokeWidth="6"
                       strokeDasharray="30,1000"
@@ -623,11 +623,11 @@ export default function MoleculeSimRow() {
                     />
                   </AnimatedG>
                   <SvgText
-                    fill={theme.arrowRed}
+                    fill={isDarkTheme ? '#FFFFFF' : theme.arrowRed}
                     fontSize={fontArrowLabel}
                     fontWeight="bold"
-                    x="50"
-                    y="8"
+                    x="60"
+                    y="18"
                     textAnchor="middle"
                     style={styles.arrowLabel}
                   >
@@ -637,14 +637,14 @@ export default function MoleculeSimRow() {
                   {/* Condensation */}
                   <AnimatedG animatedProps={blueArrowGlowProps}>
                     <Path
-                      d="M 0 50 L 95 50"
+                      d="M 10 65 L 110 65"
                       stroke={theme.arrowBlue}
                       strokeWidth="3"
                       fill="none"
                       markerStart="url(#arrowheadBlueH)"
                     />
                     <AnimatedPath
-                      d="M 0 50 L 95 50"
+                      d="M 10 65 L 110 65"
                       stroke="url(#blueParticleGradientH)"
                       strokeWidth="6"
                       strokeDasharray="30,1000"
@@ -653,11 +653,11 @@ export default function MoleculeSimRow() {
                     />
                   </AnimatedG>
                   <SvgText
-                    fill={theme.arrowBlue}
+                    fill={isDarkTheme ? '#FFFFFF' : theme.arrowBlue}
                     fontSize={fontArrowLabel}
                     fontWeight="bold"
-                    x="50"
-                    y="40"
+                    x="60"
+                    y="85"
                     textAnchor="middle"
                     style={styles.arrowLabel}
                   >
@@ -708,7 +708,7 @@ export default function MoleculeSimRow() {
                 />
               </AnimatedG>
               <SvgText
-                fill={theme.arrowBlue}
+                fill={isDarkTheme ? '#FFFFFF' : theme.arrowBlue}
                 fontSize={fontArrowLabelLarge}
                 fontWeight="bold"
                 x={totalRowWidth / 2}
@@ -845,8 +845,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   horizontalArrowContainer: {
-    width: 90,
-    height: 80,
+    width: 120,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
   },
