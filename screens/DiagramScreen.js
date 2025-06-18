@@ -39,6 +39,10 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 // Helper function
 const clamp = (min, val, max) => Math.min(Math.max(val, min), max);
 
+// Temperature conversion helper
+const kelvinToCelsius = (kelvin) => kelvin - 273.15;
+const celsiusToKelvin = (celsius) => celsius + 273.15;
+
 // Responsive values
 const fontTitle = clamp(20, SCREEN_WIDTH * 0.06, 28);
 const fontSubtitle = clamp(12, SCREEN_WIDTH * 0.035, 16);
@@ -49,8 +53,8 @@ const moleculeSize = clamp(60, SCREEN_WIDTH * 0.15, 74);
 const inputWidth = clamp(80, SCREEN_WIDTH * 0.18, 120);
 const inputHeight = clamp(24, SCREEN_HEIGHT * 0.03, 30);
 const logoSize = clamp(60, SCREEN_WIDTH * 0.12, 62);
-const thermometerHeight = clamp(120, SCREEN_HEIGHT * 0.15, 160);
-const thermometerWidth = clamp(28, SCREEN_WIDTH * 0.07, 36);
+const thermometerHeight = clamp(150, SCREEN_HEIGHT * 0.18, 180);
+const thermometerWidth = clamp(50, SCREEN_WIDTH * 0.10, 60);
 const helpButtonSize = clamp(32, SCREEN_WIDTH * 0.08, 38);
 const backButtonPadding = clamp(6, SCREEN_WIDTH * 0.010, 8);
 const backButtonFont = clamp(14, SCREEN_WIDTH * 0.04, 16);
@@ -599,23 +603,6 @@ function MoleculeSim({ phase, width = 70, height = 70 }) {
   );
 }
 
-// Add color interpolation function
-const interpolateColor = (temp, minT, maxT) => {
-  // Normalize temperature to 0-1 range
-  const normalizedTemp = (temp - minT) / (maxT - minT);
-  
-  // Define color stops
-  const coldColor = { r: 74, g: 144, b: 226 }; // Blue (#4a90e2)
-  const hotColor = { r: 229, g: 85, b: 85 };   // Red (#e55)
-  
-  // Interpolate between colors
-  const r = Math.round(coldColor.r + (hotColor.r - coldColor.r) * normalizedTemp);
-  const g = Math.round(coldColor.g + (hotColor.g - coldColor.g) * normalizedTemp);
-  const b = Math.round(coldColor.b + (hotColor.b - coldColor.b) * normalizedTemp);
-  
-  return `rgb(${r}, ${g}, ${b})`;
-};
-
 // Accurate fusion curve (solid-liquid boundary) using data points
 function accurateFusionCurve(T) {
   // Data points for fusion curve (pressure in atm, temperature in K)
@@ -666,6 +653,20 @@ function accurateFusionCurve(T) {
   return fusionData[0].P; // Default to triple point pressure
 }
 
+// Add color interpolation function before DiagramScreen
+const interpolateColor = (temp, minT, maxT) => {
+  // Normalize temperature to 0-1 range
+  const normalizedTemp = (temp - minT) / (maxT - minT);
+  // Define color stops - adjusted for better visibility in both themes
+  const coldColor = { r: 74, g: 144, b: 226 }; // Blue (#4a90e2)
+  const hotColor = { r: 255, g: 69, b: 69 };   // Bright red (#ff4545)
+  // Interpolate between colors
+  const r = Math.round(coldColor.r + (hotColor.r - coldColor.r) * normalizedTemp);
+  const g = Math.round(coldColor.g + (hotColor.g - coldColor.g) * normalizedTemp);
+  const b = Math.round(coldColor.b + (hotColor.b - coldColor.b) * normalizedTemp);
+  return `rgb(${r}, ${g}, ${b})`;
+};
+
 export default function DiagramScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
@@ -687,11 +688,11 @@ export default function DiagramScreen() {
     return (logValue - minLog) / (maxLog - minLog);
   };
 
-  const [temperature, setTemperature] = useState(T_TRIPLE); // Start at triple point (273.16 K)
+  const [temperature, setTemperature] = useState(273.15); // Start at 0°C (273.15 K)
   const [pressure, setPressure] = useState(P_TRIPLE); // Start at triple point (0.006117 atm)
   const [pressureSliderValue, setPressureSliderValue] = useState(pressureToLogSlider(P_TRIPLE)); // Start at triple point pressure
   const [orientationLocked, setOrientationLocked] = useState(false);
-  const [tempInput, setTempInput] = useState(T_TRIPLE.toString());
+  const [tempInput, setTempInput] = useState("0"); // Start at 0°C
   const [pressureInput, setPressureInput] = useState(P_TRIPLE.toString());
   const [tempWarning, setTempWarning] = useState(false);
   const [pressureWarning, setPressureWarning] = useState(false);
@@ -777,7 +778,7 @@ export default function DiagramScreen() {
   
   // Debug log for specific coordinates
   if (Math.abs(temperature - 254.69) < 0.1 && Math.abs(pressure - 300) < 0.1) {
-    console.log(`Current phase at ${temperature}K, ${pressure}atm: ${phase}`);
+    console.log(`Current phase at ${Math.round(kelvinToCelsius(temperature))}°C, ${pressure}atm: ${phase}`);
   }
 
   // Calculate thermometer color based on temperature
@@ -790,8 +791,10 @@ export default function DiagramScreen() {
       setTempInput(text);
       const num = parseFloat(text);
       if (!isNaN(num)) {
-        if (num >= minT && num <= maxT) {
-          setTemperature(num);
+        // Convert Celsius to Kelvin for internal calculations
+        const kelvinTemp = celsiusToKelvin(num);
+        if (kelvinTemp >= minT && kelvinTemp <= maxT) {
+          setTemperature(kelvinTemp);
           setTempWarning(false);
         } else {
           setTempWarning(true);
@@ -819,7 +822,7 @@ export default function DiagramScreen() {
 
   // Update input values when sliders change
   useEffect(() => {
-    setTempInput(temperature.toString());
+    setTempInput(Math.round(kelvinToCelsius(temperature)).toString());
     setTempWarning(false);
   }, [temperature]);
 
@@ -881,35 +884,131 @@ export default function DiagramScreen() {
         }]} />
         <View style={styles.thermometerContainer}>
           <Svg height={thermometerHeight} width={thermometerWidth}>
-            <Rect x="15" y="20" width="6" height="110" rx="3" fill={theme.isDarkTheme ? theme.cardBackground : '#B3E5FC'} />
+            {/* Main glass tube */}
+            <Rect 
+              x="15" 
+              y="25" 
+              width="8" 
+              height="100" 
+              rx="4" 
+              fill={theme.isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.4)'} 
+              stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'} 
+              strokeWidth="1"
+            />
+            
+            {/* Inner glass tube (transparent) */}
+            <Rect 
+              x="17" 
+              y="27" 
+              width="4" 
+              height="96" 
+              rx="2" 
+              fill={theme.isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)'} 
+              stroke="none"
+            />
+            
+            {/* Mercury/fluid column */}
             <Rect
-              x="15"
-              y={130 - ((temperature - minT) / (maxT - minT)) * 110}
-              width="6"
-              height={((temperature - minT) / (maxT - minT)) * 110}
+              x="17"
+              y={125 - ((temperature - minT) / (maxT - minT)) * 96}
+              width="4"
+              height={((temperature - minT) / (maxT - minT)) * 96}
               fill={thermometerColor}
-              rx={3}
+              rx="2"
             />
+            
+            {/* Bulb at bottom */}
             <Circle
-              cx="18"
-              cy="140"
-              r="14"
+              cx="19"
+              cy="135"
+              r="12"
               fill={thermometerColor}
-              stroke={theme.isDarkTheme ? theme.cardBackground : '#B3E5FC'}
-              strokeWidth="2"
+              stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
+              strokeWidth="1"
             />
-            {[...Array(9)].map((_, i) => (
-              <Rect
-                key={i}
-                x="23"
-                y={20 + i * 13.75}
-                width="8"
-                height="2"
-                fill={theme.isDarkTheme ? theme.cardBackground : '#0288D1'}
-                opacity={i % 2 === 0 ? 1 : 0.5}
-                rx={1}
-              />
-            ))}
+            
+            {/* Bulb highlight */}
+            <Circle
+              cx="17"
+              cy="133"
+              r="4"
+              fill={theme.isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)'}
+              stroke="none"
+            />
+            
+            {/* Scale markings - major ticks */}
+            {[200, 300, 400, 500, 600, 700].map((temp, i) => {
+              const y = 125 - ((temp - minT) / (maxT - minT)) * 96;
+              return (
+                <React.Fragment key={`major-${temp}`}>
+                  <Rect
+                    x="25"
+                    y={y - 1}
+                    width="6"
+                    height="2"
+                    fill={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
+                    rx="1"
+                  />
+                  <SvgText
+                    x="35"
+                    y={y + 4}
+                    fontSize="10"
+                    fill={theme.subtitleText}
+                    fontWeight="bold"
+                  >
+                    {Math.round(kelvinToCelsius(temp))}
+                  </SvgText>
+                </React.Fragment>
+              );
+            })}
+            
+            {/* Scale markings - minor ticks */}
+            {[250, 350, 450, 550, 650].map((temp, i) => {
+              const y = 125 - ((temp - minT) / (maxT - minT)) * 96;
+              return (
+                <Rect
+                  key={`minor-${temp}`}
+                  x="27"
+                  y={y - 0.5}
+                  width="3"
+                  height="1"
+                  fill={theme.isDarkTheme ? '#4895EF' : '#64B5F6'}
+                  rx="0.5"
+                />
+              );
+            })}
+            
+            {/* Temperature value display */}
+            <Rect
+              x="10"
+              y="5"
+              width="24"
+              height="16"
+              rx="3"
+              fill={theme.isDarkTheme ? 'rgba(76, 201, 240, 0.2)' : 'rgba(255,255,255,0.95)'}
+              stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
+              strokeWidth="1"
+            />
+            <SvgText
+              x="22"
+              y="16"
+              fontSize="11"
+              fill={thermometerColor}
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              {Math.round(kelvinToCelsius(temperature))}°C
+            </SvgText>
+            
+            {/* Glass reflection */}
+            <Rect
+              x="16"
+              y="28"
+              width="2"
+              height="94"
+              fill={theme.isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.3)'}
+              rx="1"
+            />
           </Svg>
         </View>
         
@@ -2324,7 +2423,7 @@ export default function DiagramScreen() {
                         textAnchor="middle"
                         opacity={0.93}
                       >
-                        {t}
+                        {Math.round(kelvinToCelsius(t))}
                       </SvgText>
                     </React.Fragment>
                   );
@@ -2339,7 +2438,7 @@ export default function DiagramScreen() {
                   textAnchor="middle"
                   opacity={0.94}
                 >
-                  TEMPERATURE (K)
+                  TEMPERATURE (°C)
                 </SvgText>
                 {/* Y-axis ticks and labels (log scale) */}
                 {[0.001, 0.01, 0.1, 1, 10, 100, 200, 300].map((p) => {
@@ -2421,7 +2520,7 @@ export default function DiagramScreen() {
                 />
                 <SvgText
                   x={mapT(647.096) - 10}
-                  y={mapP(110.75) - 10}
+                  y={mapP(98.75) - 10}
                   fontSize="12"
                   fill={theme.titleText}
                   fontWeight="bold"
@@ -2430,8 +2529,8 @@ export default function DiagramScreen() {
                 </SvgText>
                 {/* Phase labels */}
                 <SvgText
-                  x={mapT(210)}
-                  y={mapP(10)}
+                  x={mapT(205)}
+                  y={mapP(0.07)}
                   fontSize="15"
                   fill={theme.subtitleText}
                   fontWeight="bold"
@@ -2513,14 +2612,14 @@ export default function DiagramScreen() {
                   keyboardType="decimal-pad"
                   selectTextOnFocus
                   maxLength={7}
-                  placeholder="273"
+                  placeholder="0"
                   placeholderTextColor="#e5580"
                 />
-                <Text style={[styles.inputUnit, { color: tempWarning ? "#ff4444" : "#e55" }]}> K</Text>
+                <Text style={[styles.inputUnit, { color: tempWarning ? "#ff4444" : "#e55" }]}> °C</Text>
               </View>
               {tempWarning && (
                 <Text style={styles.warningText}>
-                  Max: 700 K
+                  Max: 427 °C
                 </Text>
               )}
             </View>

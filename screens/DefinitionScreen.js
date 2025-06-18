@@ -86,7 +86,10 @@ export default function DefinitionScreen() {
       
       <Image 
         source={require('../assets/logo.png')}
-        style={[styles.logo, { shadowColor: theme.primaryAccent }]}
+        style={[styles.logo, { 
+          shadowColor: theme.primaryAccent,
+          tintColor: theme.titleText
+        }]}
         resizeMode="contain"
       />
 

@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icons from 'react-native-vector-icons/FontAwesome6';
 import Feather from 'react-native-vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
+import MoleculeBackground from '../components/MoleculeBackground';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
@@ -112,6 +113,8 @@ export default function PhaseChangeScreen({ navigation }) {
       key={theme.background}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
+      <MoleculeBackground />
+      
       <TouchableOpacity 
         style={[styles.backButton, { 
           backgroundColor: theme.buttonPrimary,
@@ -128,7 +131,7 @@ export default function PhaseChangeScreen({ navigation }) {
       <ImageBackground
         source={require('../assets/logo.png')}
         style={styles.backgroundImage}
-        imageStyle={styles.backgroundImageStyle}
+        imageStyle={[styles.backgroundImageStyle, { tintColor: theme.titleText }]}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Animated.View 
@@ -145,7 +148,7 @@ export default function PhaseChangeScreen({ navigation }) {
           >
             <Image 
               source={require('../assets/logo.png')}
-              style={styles.headerLogo}
+              style={[styles.headerLogo, { tintColor: theme.titleText }]}
               resizeMode="contain"
             />
             <Text style={[styles.title, { color: theme.titleText }]}>Phase Changes</Text>

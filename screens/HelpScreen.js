@@ -227,11 +227,11 @@ export default function HelpScreen() {
               </View>
               <View style={styles.keyPointItem}>
                 <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
-                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Temperature range: 200K - 700K</Text>
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Temperature range: -73°C to 427°C</Text>
               </View>
               <View style={styles.keyPointItem}>
                 <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
-                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Pressure range: 0.001 - 300 atm</Text>
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Pressure range: 0.001 to 300 atm</Text>
               </View>
             </View>
           </View>
