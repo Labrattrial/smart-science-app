@@ -17,6 +17,7 @@ import FlowchartScreen from './screens/FlowchartScreen';
 import QuestionsScreen from './screens/QuestionsScreen';
 import AboutScreen from './screens/AboutScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import HelpScreen from './screens/HelpScreen';
 
 // Import all PhaseChangeScreens
 import MeltingScreen from './PhaseChangeScreens/MeltingScreen';
@@ -52,6 +53,7 @@ export default function App() {
             <Stack.Screen name="Questions" component={QuestionsScreen} />
             <Stack.Screen name="About" component={AboutScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Help" component={HelpScreen} />
 
             {/* Add all Phase Change Screens here */}
             <Stack.Screen name="MeltingScreen" component={MeltingScreen} />

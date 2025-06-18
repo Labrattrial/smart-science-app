@@ -34,6 +34,20 @@ export const ThemeProvider = ({ children }) => {
   const [isDarkTheme, setIsDarkTheme] = useState(false); // Default to light theme
   const [isSystemTheme, setIsSystemTheme] = useState(true);
 
+  // Inside ThemeProvider
+
+const setTheme = async (useDark) => {
+  try {
+    setIsDarkTheme(useDark);
+    setIsSystemTheme(false);
+    await AsyncStorage.setItem('theme', JSON.stringify(useDark));
+    await AsyncStorage.setItem('useSystemTheme', JSON.stringify(false));
+  } catch (error) {
+    console.log('Error setting theme:', error);
+  }
+};
+
+
   // Load saved theme preference
   useEffect(() => {
     const loadTheme = async () => {
@@ -109,6 +123,7 @@ export const ThemeProvider = ({ children }) => {
       isSystemTheme,
       toggleTheme, 
       toggleSystemTheme,
+      setTheme, 
       theme 
     }}>
       {children}

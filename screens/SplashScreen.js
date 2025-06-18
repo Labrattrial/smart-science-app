@@ -3,8 +3,24 @@ import { View, Text, StyleSheet, Animated, Dimensions, Platform, TouchableOpacit
 import MoleculeBackground from '../components/MoleculeBackground';
 import { useAudio } from '../components/AudioContext';
 import { useTheme } from '../components/ThemeContext';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+// Helper function
+const clamp = (min, val, max) => Math.min(Math.max(val, min), max);
+
+// Responsive values
+const logoSize = clamp(120, SCREEN_WIDTH * 0.25, 200);
+const fontTitle = clamp(32, SCREEN_WIDTH * 0.12, 48);
+const fontSubtitle = clamp(16, SCREEN_WIDTH * 0.06, 24);
+const fontButton = clamp(18, SCREEN_WIDTH * 0.07, 24);
+const buttonPaddingVertical = clamp(12, SCREEN_HEIGHT * 0.02, 20);
+const buttonPaddingHorizontal = clamp(32, SCREEN_WIDTH * 0.08, 48);
+const logoMarginBottom = clamp(20, SCREEN_HEIGHT * 0.03, 40);
+const buttonMarginTop = clamp(40, SCREEN_HEIGHT * 0.08, 80);
+const contentPadding = clamp(15, SCREEN_WIDTH * 0.04, 25);
 
 export default function SplashScreen({ navigation }) {
   const { playPopSound } = useAudio();
@@ -192,20 +208,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoContainer: {
-    marginBottom: 30,
+    marginBottom: logoMarginBottom,
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: logoSize,
+    height: logoSize,
     tintColor: '#FFFFFF',
   },
   content: {
     alignItems: 'center',
-    padding: 20,
+    padding: contentPadding,
   },
   title: {
     color: '#4CC9F0',
-    fontSize: 48,
+    fontSize: fontTitle,
     fontWeight: '800',
     textAlign: 'center',
     textShadowColor: 'rgba(76, 201, 240, 0.4)',
@@ -216,7 +232,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: fontSubtitle,
     textAlign: 'center',
     marginTop: 16,
     opacity: 0.9,
@@ -228,12 +244,12 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif',
   },
   buttonContainer: {
-    marginTop: 60,
+    marginTop: buttonMarginTop,
   },
   button: {
     backgroundColor: 'rgba(76, 201, 240, 0.25)',
-    paddingVertical: 16,
-    paddingHorizontal: 48,
+    paddingVertical: buttonPaddingVertical,
+    paddingHorizontal: buttonPaddingHorizontal,
     borderRadius: 30,
     borderWidth: 2,
     borderColor: '#4CC9F0',
@@ -247,7 +263,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: fontButton,
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 1,

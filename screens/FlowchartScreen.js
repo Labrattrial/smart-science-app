@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { View, StyleSheet, Text, Platform, TouchableOpacity, Image } from "react-native";
+import { View, StyleSheet, Text, Platform, TouchableOpacity, Image, Dimensions } from "react-native";
 import Svg, { Circle, Path, Defs, Marker, Text as SvgText, G, LinearGradient, Stop } from "react-native-svg";
 import Animated, {
   useSharedValue,
@@ -17,6 +17,29 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+
+// Screen dimensions
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+// Helper function
+const clamp = (min, val, max) => Math.min(Math.max(val, min), max);
+
+// Responsive values
+const fontTitle = clamp(20, SCREEN_WIDTH * 0.06, 32);
+const fontPhaseLabel = clamp(14, SCREEN_WIDTH * 0.04, 18);
+const fontArrowLabel = clamp(10, SCREEN_WIDTH * 0.03, 14);
+const fontArrowLabelLarge = clamp(12, SCREEN_WIDTH * 0.035, 14);
+const backButtonFont = clamp(14, SCREEN_WIDTH * 0.04, 16);
+const logoSize = clamp(50, SCREEN_WIDTH * 0.12, 70);
+const flaskSize = clamp(80, SCREEN_WIDTH * 0.22, 110);
+const flaskNeckWidth = clamp(35, SCREEN_WIDTH * 0.09, 45);
+const flaskNeckHeight = clamp(40, SCREEN_HEIGHT * 0.05, 55);
+const arrowGap = clamp(30, SCREEN_WIDTH * 0.08, 50);
+const mainPadding = clamp(10, SCREEN_WIDTH * 0.025, 20);
+const contentPadding = clamp(15, SCREEN_HEIGHT * 0.02, 30);
+const titlePadding = clamp(20, SCREEN_HEIGHT * 0.03, 40);
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -64,7 +87,7 @@ const PHASE_TRANSITIONS = {
   SUBLIMATION_POINT: 273.15 // 0°C (at low pressure)
 };
 
-function MoleculeSim({ phase, width = 100, height = 100 }) {
+function MoleculeSim({ phase, width = flaskSize, height = flaskSize }) {
   const MAX_MOLS = 9;
   // Adjust molecule count based on phase (more molecules in liquid than gas)
   const count = phase === "Solid" ? 9 : phase === "Liquid" ? 8 : 6;
@@ -260,11 +283,11 @@ export default function MoleculeSimRow() {
     };
   }, []);
 
-  const totalRowWidth = 3 * 100 + 2 * 50;
+  const totalRowWidth = 3 * flaskSize + 2 * arrowGap;
   const flaskCenterX = {
-    solid: 50,
-    liquid: 50 + 100 + 50,
-    gas: 200 + 100 + 50,
+    solid: arrowGap,
+    liquid: arrowGap + flaskSize + arrowGap,
+    gas: 2 * arrowGap + 2 * flaskSize + arrowGap,
   };
 
   const arrowGlowProps = useAnimatedProps(() => {
@@ -353,7 +376,11 @@ export default function MoleculeSimRow() {
     >
       <Image 
         source={require('../assets/logo.png')}
-        style={[styles.logo, { tintColor: theme.titleText }]}
+        style={[styles.logo, { 
+          tintColor: theme.titleText,
+          width: logoSize,
+          height: logoSize,
+        }]}
         resizeMode="contain"
       />
 
@@ -365,7 +392,10 @@ export default function MoleculeSimRow() {
         }]}
         onPress={() => handlePress(() => navigation.goBack())}
       >
-        <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
+        <Text style={[styles.backButtonText, { 
+          color: theme.titleText,
+          fontSize: backButtonFont,
+        }]}>Back</Text>
         <Icon name="arrow-right" size={20} color={theme.titleText} />
       </TouchableOpacity>
 
@@ -373,10 +403,15 @@ export default function MoleculeSimRow() {
         <Text style={[styles.title, { 
           color: theme.titleText,
           textShadowColor: theme.glowColor,
+          fontSize: fontTitle,
         }]}>CHANGING STATES OF MATTER</Text>
       </View>
       
-      <View style={styles.mainContentContainer}>
+      <View style={[styles.mainContentContainer, {
+        paddingHorizontal: mainPadding,
+        paddingVertical: contentPadding,
+        paddingTop: titlePadding,
+      }]}>
         <ExpoLinearGradient
           colors={[
             theme.cardBackground,
@@ -421,7 +456,7 @@ export default function MoleculeSimRow() {
               </AnimatedG>
               <SvgText
                 fill={theme.arrowRed}
-                fontSize="14"
+                fontSize={fontArrowLabelLarge}
                 fontWeight="bold"
                 x={totalRowWidth / 2}
                 y="35"
@@ -432,12 +467,13 @@ export default function MoleculeSimRow() {
               </SvgText>
             </Svg>
 
-            <View style={styles.rowContainer}>
+            <View style={[styles.rowContainer, { gap: arrowGap }]}>
               <View style={styles.phaseContainer}>
-                <MoleculeSim phase="Solid" width={100} height={100} />
+                <MoleculeSim phase="Solid" width={flaskSize} height={flaskSize} />
                 <Text style={[styles.phaseLabel, { 
                   color: phaseColors.Solid,
                   textShadowColor: theme.glowColor,
+                  fontSize: fontPhaseLabel,
                 }]}>SOLID</Text>
               </View>
 
@@ -489,7 +525,7 @@ export default function MoleculeSimRow() {
                   </AnimatedG>
                   <SvgText
                     fill={theme.arrowRed}
-                    fontSize="12"
+                    fontSize={fontArrowLabel}
                     fontWeight="bold"
                     x="50"
                     y="8"
@@ -519,7 +555,7 @@ export default function MoleculeSimRow() {
                   </AnimatedG>
                   <SvgText
                     fill={theme.arrowBlue}
-                    fontSize="12"
+                    fontSize={fontArrowLabel}
                     fontWeight="bold"
                     x="50"
                     y="40"
@@ -532,10 +568,11 @@ export default function MoleculeSimRow() {
               </View>
 
               <View style={styles.phaseContainer}>
-                <MoleculeSim phase="Liquid" width={100} height={100} />
+                <MoleculeSim phase="Liquid" width={flaskSize} height={flaskSize} />
                 <Text style={[styles.phaseLabel, { 
                   color: phaseColors.Liquid,
                   textShadowColor: theme.glowColor,
+                  fontSize: fontPhaseLabel,
                 }]}>LIQUID</Text>
               </View>
 
@@ -587,7 +624,7 @@ export default function MoleculeSimRow() {
                   </AnimatedG>
                   <SvgText
                     fill={theme.arrowRed}
-                    fontSize="12"
+                    fontSize={fontArrowLabel}
                     fontWeight="bold"
                     x="50"
                     y="8"
@@ -617,7 +654,7 @@ export default function MoleculeSimRow() {
                   </AnimatedG>
                   <SvgText
                     fill={theme.arrowBlue}
-                    fontSize="12"
+                    fontSize={fontArrowLabel}
                     fontWeight="bold"
                     x="50"
                     y="40"
@@ -630,10 +667,11 @@ export default function MoleculeSimRow() {
               </View>
 
               <View style={styles.phaseContainer}>
-                <MoleculeSim phase="Gas" width={100} height={100} />
+                <MoleculeSim phase="Gas" width={flaskSize} height={flaskSize} />
                 <Text style={[styles.phaseLabel, { 
                   color: phaseColors.Gas,
                   textShadowColor: theme.glowColor,
+                  fontSize: fontPhaseLabel,
                 }]}>GAS</Text>
               </View>
             </View>
@@ -671,7 +709,7 @@ export default function MoleculeSimRow() {
               </AnimatedG>
               <SvgText
                 fill={theme.arrowBlue}
-                fontSize="14"
+                fontSize={fontArrowLabelLarge}
                 fontWeight="bold"
                 x={totalRowWidth / 2}
                 y="55"
@@ -694,7 +732,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     width: '100%',
-    paddingTop: Platform.OS === 'ios' ? 40 : 30,
+    paddingTop: titlePadding,
     paddingBottom: 5,
     alignItems: 'center',
   },

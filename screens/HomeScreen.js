@@ -322,12 +322,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sideButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
     includeFontPadding: false,
     textAlignVertical: 'center',
-    paddingVertical: 6,
+    paddingVertical: 1,
   },
 });

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Platform, Dimensions, TouchableOpacity, ScrollView, Appearance } from 'react-native';
+import { View, Text, StyleSheet, Platform, Dimensions, TouchableOpacity, ScrollView, Appearance, LayoutAnimation } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTheme } from '../components/ThemeContext';
 
 // Screen dimensions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 // Helper function
 const clamp = (min, val, max) => Math.min(Math.max(val, min), max);
@@ -15,42 +16,55 @@ const fontTitle = clamp(24, SCREEN_WIDTH * 0.08, 32);
 const fontSubtitle = clamp(14, SCREEN_WIDTH * 0.045, 18);
 const borderRadius = clamp(10, SCREEN_WIDTH * 0.03, 20);
 const shadowRadius = clamp(2, SCREEN_WIDTH * 0.02, 6);
+const paddingTopContent = clamp(5, SCREEN_HEIGHT * 0.10, 90);
+const paddingBottomContent = clamp(10, SCREEN_HEIGHT * 0.05, 40);
 
 export default function AboutScreen({ navigation }) {
-  const { theme, isDarkTheme, isSystemTheme } = useTheme();
-  const [colorScheme, setColorScheme] = useState(Appearance.getColorScheme());
+  const { theme } = useTheme();
 
+  // Verify reactivity with useEffect
   useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setColorScheme(colorScheme);
-    });
-
-    return () => subscription.remove();
-  }, []);
-
-  const currentTheme = isSystemTheme ? colorScheme === 'dark' : isDarkTheme;
+    console.log('AboutScreen theme changed:', theme.background);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, [theme]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.cardBackground }]}>
-        <TouchableOpacity 
-          style={[styles.backButton, { backgroundColor: theme.buttonPrimary }]}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-back" size={wp('6')} color={theme.primaryAccent} />
-        </TouchableOpacity>
+    <View 
+      key={theme.background}
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
+      <TouchableOpacity 
+        style={[styles.backButton, { 
+          backgroundColor: theme.buttonPrimary,
+          borderColor: theme.primaryAccent,
+          shadowColor: theme.shadowColor,
+          elevation: 5,
+        }]}
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
+        <Icon name="arrow-right" size={20} color={theme.titleText} />
+      </TouchableOpacity>
+
+      <View style={[styles.header, { 
+        backgroundColor: theme.cardBackground,
+        borderBottomColor: theme.borderColor,
+        shadowColor: theme.shadowColor,
+        elevation: 3,
+      }]}>
         <Text style={[styles.title, { color: theme.primaryAccent }]}>About</Text>
       </View>
 
       <ScrollView 
         style={[styles.content, { backgroundColor: theme.background }]} 
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
         <View style={[styles.section, { 
           backgroundColor: theme.cardBackground,
           borderColor: theme.borderColor,
-          borderWidth: 1,
           shadowColor: theme.shadowColor,
+          elevation: 3,
         }]}>
           <Text style={[styles.sectionTitle, { color: theme.primaryAccent }]}>Smart Science</Text>
           <Text style={[styles.sectionText, { color: theme.subtitleText }]}>
@@ -61,8 +75,8 @@ export default function AboutScreen({ navigation }) {
         <View style={[styles.section, { 
           backgroundColor: theme.cardBackground,
           borderColor: theme.borderColor,
-          borderWidth: 1,
           shadowColor: theme.shadowColor,
+          elevation: 3,
         }]}>
           <Text style={[styles.sectionTitle, { color: theme.primaryAccent }]}>Features</Text>
           <Text style={[styles.sectionText, { color: theme.subtitleText }]}>
@@ -78,8 +92,8 @@ export default function AboutScreen({ navigation }) {
         <View style={[styles.section, { 
           backgroundColor: theme.cardBackground,
           borderColor: theme.borderColor,
-          borderWidth: 1,
           shadowColor: theme.shadowColor,
+          elevation: 3,
         }]}>
           <Text style={[styles.sectionTitle, { color: theme.primaryAccent }]}>Version</Text>
           <Text style={[styles.sectionText, { color: theme.subtitleText }]}>1.0.0</Text>
@@ -94,30 +108,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? hp('6') : hp('4'),
+    paddingTop: paddingTopContent,
     paddingHorizontal: wp('5'),
-    paddingBottom: hp('2'),
+    paddingBottom: hp('3'),
     borderBottomWidth: 1,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
   },
   backButton: {
-    padding: wp('2'),
-    borderRadius: borderRadius,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? hp('7') : hp('5'),
+    right: wp('4'),
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: wp('2.5'),
+    paddingHorizontal: wp('3'),
+    borderRadius: wp('3'),
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: wp('2'),
+  },
+  backButtonText: {
+    fontSize: wp('4'),
+    fontWeight: "700",
+    marginRight: wp('1.5'),
+    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
   },
   title: {
     fontSize: fontTitle,
     fontWeight: '800',
-    marginLeft: wp('3'),
+    textAlign: 'center',
   },
   content: {
     flex: 1,
@@ -127,10 +152,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius,
     padding: wp('4'),
     marginBottom: hp('2'),
+    borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
   },
   sectionTitle: {
     fontSize: fontSubtitle,
@@ -140,5 +165,8 @@ const styles = StyleSheet.create({
   sectionText: {
     fontSize: fontSubtitle,
     lineHeight: fontSubtitle * 1.5,
+  },
+  scrollContent: {
+    paddingBottom: paddingBottomContent,
   },
 }); 

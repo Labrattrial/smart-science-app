@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Platform, Dimensions, TouchableOpacity, ScrollView } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -8,6 +8,7 @@ import { useTheme } from '../components/ThemeContext';
 
 // Screen dimensions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 // Helper function
 const clamp = (min, val, max) => Math.min(Math.max(val, min), max);
@@ -19,6 +20,8 @@ const buttonPaddingVertical = clamp(6, SCREEN_WIDTH * 0.025, 12);
 const buttonPaddingHorizontal = clamp(16, SCREEN_WIDTH * 0.05, 24);
 const borderRadius = clamp(10, SCREEN_WIDTH * 0.03, 20);
 const shadowRadius = clamp(2, SCREEN_WIDTH * 0.02, 6);
+const paddingTopContent = clamp(7, SCREEN_HEIGHT * 0.10, 90);
+const paddingBottomContent = clamp(10, SCREEN_HEIGHT * 0.05, 40);
 
 const RadioButton = ({ selected, onPress, label, theme }) => (
   <TouchableOpacity
@@ -51,7 +54,7 @@ export default function SettingsScreen({ navigation }) {
     setSFXVolumeAsync, 
     playPopSound 
   } = useAudio();
-  const { isDarkTheme, toggleTheme, theme, isSystemTheme, toggleSystemTheme } = useTheme();
+  const { isDarkTheme, toggleTheme, theme, isSystemTheme, toggleSystemTheme, setTheme } = useTheme();
 
   const handleMusicVolumeChange = async (value) => {
     await setMusicVolumeAsync(value);
@@ -70,17 +73,37 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-back" size={wp('6')} color={theme.primaryAccent} />
-        </TouchableOpacity>
+      <TouchableOpacity 
+        style={[styles.backButton, { 
+          backgroundColor: theme.buttonPrimary,
+          borderColor: theme.primaryAccent,
+          shadowColor: theme.shadowColor,
+          elevation: 5,
+        }]}
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
+        <Icon name="arrow-right" size={20} color={theme.titleText} />
+      </TouchableOpacity>
+
+      <View style={[styles.header, { 
+        backgroundColor: theme.cardBackground,
+        borderBottomColor: theme.borderColor,
+        shadowColor: theme.shadowColor,
+        elevation: 3,
+        borderBottomWidth: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      }]}>
         <Text style={[styles.title, { color: theme.primaryAccent }]}>Settings</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Music Volume */}
         <View style={[styles.settingContainer, { 
           backgroundColor: theme.cardBackground,
@@ -139,24 +162,41 @@ export default function SettingsScreen({ navigation }) {
             <Text style={[styles.settingTitle, { color: theme.subtitleText }]}>Theme</Text>
           </View>
           <View style={styles.radioGroup}>
-            <RadioButton
-              selected={isSystemTheme}
-              onPress={() => !isSystemTheme && toggleSystemTheme()}
-              label="System"
-              theme={theme}
-            />
-            <RadioButton
-              selected={!isDarkTheme && !isSystemTheme}
-              onPress={() => (isDarkTheme || isSystemTheme) && handleThemeToggle()}
-              label="Light"
-              theme={theme}
-            />
-            <RadioButton
-              selected={isDarkTheme && !isSystemTheme}
-              onPress={() => (!isDarkTheme || isSystemTheme) && handleThemeToggle()}
-              label="Dark"
-              theme={theme}
-            />
+          <RadioButton
+            selected={isSystemTheme}
+            onPress={() => {
+              if (!isSystemTheme) {
+                toggleSystemTheme();
+                playPopSound();
+              }
+            }}
+            label="System"
+            theme={theme}
+          />
+
+          <RadioButton
+            selected={!isDarkTheme && !isSystemTheme}
+            onPress={() => {
+              if (isDarkTheme || isSystemTheme) {
+                setTheme(false); // set light theme
+                playPopSound();
+              }
+            }}
+            label="Light"
+            theme={theme}
+          />
+
+          <RadioButton
+            selected={isDarkTheme && !isSystemTheme}
+            onPress={() => {
+              if (!isDarkTheme || isSystemTheme) {
+                setTheme(true); // set dark theme
+                playPopSound();
+              }
+            }}
+            label="Dark"
+            theme={theme}
+          />
           </View>
         </View>
 
@@ -175,7 +215,7 @@ export default function SettingsScreen({ navigation }) {
             <Text style={[styles.settingTitle, { color: theme.subtitleText }]}>About</Text>
           </View>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -185,22 +225,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? hp('6') : hp('4'),
+    paddingTop: paddingTopContent,
     paddingHorizontal: wp('5'),
-    paddingBottom: hp('2'),
+    paddingBottom: hp('3'),
+    borderBottomWidth: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   backButton: {
-    padding: wp('2'),
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? hp('7') : hp('5'),
+    right: wp('4'),
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: wp('2.5'),
+    paddingHorizontal: wp('3'),
+    borderRadius: wp('3'),
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: wp('2'),
+  },
+  backButtonText: {
+    fontSize: wp('4'),
+    fontWeight: "700",
+    marginRight: wp('1.5'),
+    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
   },
   title: {
     fontSize: fontTitle,
     fontWeight: '800',
-    marginLeft: wp('3'),
+    textAlign: 'center',
   },
   content: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: wp('5'),
+    paddingBottom: paddingBottomContent,
   },
   settingContainer: {
     borderRadius: borderRadius,

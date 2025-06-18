@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Animated, Platform, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Animated, Platform, TouchableOpacity, Image, LayoutAnimation } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
+import { useTheme } from '../components/ThemeContext';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
 const definitions = [
@@ -29,11 +30,18 @@ const definitions = [
 
 export default function DefinitionScreen() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const blockAnims = useRef(definitions.map(() => new Animated.Value(0))).current;
   const handlePress = useButtonSound();
+
+  // Verify reactivity with useEffect
+  useEffect(() => {
+    console.log('DefinitionScreen theme changed:', theme.background);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, [theme]);
 
   useEffect(() => {
     // Header animation
@@ -70,21 +78,29 @@ export default function DefinitionScreen() {
   }, []);
 
   return (
-    <View style={styles.bgWrap}>
-      <View style={styles.bgAccent} />
+    <View 
+      key={theme.background}
+      style={[styles.bgWrap, { backgroundColor: theme.background }]}
+    >
+      <View style={[styles.bgAccent, { backgroundColor: theme.shadowColor }]} />
       
       <Image 
         source={require('../assets/logo.png')}
-        style={styles.logo}
+        style={[styles.logo, { shadowColor: theme.primaryAccent }]}
         resizeMode="contain"
       />
 
       <TouchableOpacity 
-        style={styles.backButton}
+        style={[styles.backButton, { 
+          backgroundColor: theme.buttonPrimary,
+          borderColor: theme.primaryAccent,
+          shadowColor: theme.primaryAccent,
+          elevation: 5,
+        }]}
         onPress={() => handlePress(() => navigation.goBack())}
       >
-        <Text style={styles.backButtonText}>Back</Text>
-        <Icon name="arrow-right" size={20} color="#FFFFFF" />
+        <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
+        <Icon name="arrow-right" size={20} color={theme.titleText} />
       </TouchableOpacity>
 
       <ScrollView 
@@ -95,6 +111,10 @@ export default function DefinitionScreen() {
           style={[
             styles.headerContainer,
             {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.borderColor,
+              shadowColor: theme.shadowColor,
+              elevation: 8,
               opacity: fadeAnim,
               transform: [
                 { translateY: slideAnim },
@@ -103,11 +123,15 @@ export default function DefinitionScreen() {
             }
           ]}
         >
-          <Text style={styles.header}>Definition of Terms</Text>
-          <Text style={styles.subheader}>Let's learn about the amazing world of matter! 🧪✨</Text>
+          <Text style={[styles.header, { color: theme.titleText }]}>Definition of Terms</Text>
+          <Text style={[styles.subheader, { color: theme.subtitleText }]}>Let's learn about the amazing world of matter! 🧪✨</Text>
         </Animated.View>
 
-        <View style={styles.separator} />
+        <View style={[styles.separator, { 
+          backgroundColor: theme.borderColor,
+          shadowColor: theme.shadowColor,
+          elevation: 2,
+        }]} />
 
         {definitions.map(({ term, def, icon }, index) => (
           <Animated.View 
@@ -115,6 +139,10 @@ export default function DefinitionScreen() {
             style={[
               styles.definitionBlock,
               {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.primaryAccent,
+                shadowColor: theme.shadowColor,
+                elevation: 5,
                 opacity: blockAnims[index],
                 transform: [
                   { 
@@ -133,11 +161,14 @@ export default function DefinitionScreen() {
               }
             ]}
           >
-            <View style={styles.termRow}>
+            <View style={[styles.termRow, { 
+              backgroundColor: theme.buttonSecondary,
+              borderColor: theme.borderColor,
+            }]}>
               <Text style={styles.termIcon}>{icon}</Text>
-              <Text style={styles.term}>{term}</Text>
+              <Text style={[styles.term, { color: theme.titleText }]}>{term}</Text>
             </View>
-            <Text style={styles.definition}>{def}</Text>
+            <Text style={[styles.definition, { color: theme.subtitleText }]}>{def}</Text>
           </Animated.View>
         ))}
       </ScrollView>
@@ -148,7 +179,6 @@ export default function DefinitionScreen() {
 const styles = StyleSheet.create({
   bgWrap: {
     flex: 1,
-    backgroundColor: '#0D1117',
   },
   bgAccent: {
     position: 'absolute',
@@ -157,7 +187,6 @@ const styles = StyleSheet.create({
     width: wp('55'),
     height: wp('55'),
     borderRadius: wp('27.5'),
-    backgroundColor: 'rgba(76, 201, 240, 0.1)',
     zIndex: 0,
   },
   scrollContent: {
@@ -168,55 +197,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: hp('3.5'),
     padding: wp('5'),
-    backgroundColor: '#1F2428',
     borderRadius: wp('5'),
     borderWidth: 1,
-    borderColor: '#4CC9F040',
-    shadowColor: '#4CC9F0',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: wp('5'),
-    elevation: 8,
   },
   header: {
     fontSize: wp('9'),
     fontWeight: '700',
-    color: '#E0F7FA',
     textAlign: 'center',
-    textShadowColor: '#4CC9F0',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: wp('2.5'),
   },
   subheader: {
     fontSize: wp('4.5'),
-    color: '#90A4AE',
     marginTop: hp('1'),
     textAlign: 'center',
   },
   definitionBlock: {
     marginBottom: hp('2'),
-    backgroundColor: 'rgba(76, 201, 240, 0.15)',
     padding: wp('5'),
     borderRadius: wp('5'),
     borderWidth: 2,
-    borderColor: '#4CC9F0',
-    shadowColor: '#4CC9F0',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: wp('2'),
-    elevation: 5,
     borderBottomWidth: 4,
-    borderBottomColor: 'rgba(76, 201, 240, 0.3)',
   },
   termRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: hp('1'),
-    backgroundColor: 'rgba(76, 201, 240, 0.2)',
     padding: wp('3'),
     borderRadius: wp('3'),
     borderWidth: 1,
-    borderColor: 'rgba(76, 201, 240, 0.4)',
   },
   termIcon: {
     fontSize: wp('6'),
@@ -225,23 +240,19 @@ const styles = StyleSheet.create({
   term: {
     fontSize: wp('5'),
     fontWeight: '700',
-    color: '#FFFFFF',
     letterSpacing: 0.5,
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
     flex: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   definition: {
     fontSize: wp('4'),
-    color: '#FFFFFF',
     lineHeight: hp('3'),
     opacity: 0.95,
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif',
     paddingLeft: wp('9'),
     paddingTop: hp('1'),
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
   },
@@ -252,23 +263,17 @@ const styles = StyleSheet.create({
     zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(76, 201, 240, 0.25)',
     padding: wp('2'),
     paddingHorizontal: wp('3'),
     borderRadius: wp('3'),
     borderWidth: 2,
-    borderColor: '#4CC9F0',
     borderBottomWidth: 4,
-    borderBottomColor: 'rgba(76, 201, 240, 0.4)',
-    shadowColor: "#4CC9F0",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: wp('2'),
-    elevation: 5,
   },
   backButtonText: {
     fontSize: wp('4'),
-    color: "#FFFFFF",
     fontWeight: "700",
     marginRight: wp('1.5'),
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
@@ -280,7 +285,6 @@ const styles = StyleSheet.create({
     width: wp('15'),
     height: wp('15'),
     zIndex: 10,
-    shadowColor: '#4CC9F0',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: wp('2'),
@@ -288,13 +292,10 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 2,
-    backgroundColor: 'rgba(76, 201, 240, 0.3)',
     marginVertical: hp('3'),
     borderRadius: 1,
-    shadowColor: '#4CC9F0',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: wp('1'),
-    elevation: 2,
   },
 });

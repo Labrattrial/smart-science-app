@@ -105,11 +105,7 @@ export const AudioProvider = ({ children }) => {
   // Callback for playback status updates
   const onPlaybackStatusUpdate = (status) => {
     if (status.isLoaded) {
-      console.log('BGM Status:', {
-        isPlaying: status.isPlaying,
-        volume: status.volume,
-        position: status.positionMillis,
-      });
+      // BGM Status logging removed
     }
   };
 

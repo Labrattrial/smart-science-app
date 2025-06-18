@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, Image } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, Image, LayoutAnimation } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
+import { useTheme } from '../components/ThemeContext';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
 const quiz = [
@@ -41,6 +42,7 @@ const quiz = [
 
 export default function QuizScreen() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const handlePress = useButtonSound();
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -48,6 +50,12 @@ export default function QuizScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const bounceAnim = useRef(new Animated.Value(0)).current;
+
+  // Verify reactivity with useEffect
+  useEffect(() => {
+    console.log('QuestionsScreen theme changed:', theme.background);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, [theme]);
 
   useEffect(() => {
     Animated.sequence([
@@ -95,10 +103,13 @@ export default function QuizScreen() {
 
   if (qIndex >= quiz.length) {
     return (
-      <View style={styles.container}>
+      <View 
+        key={theme.background}
+        style={[styles.container, { backgroundColor: theme.background }]}
+      >
         <Image 
           source={require('../assets/logo.png')}
-          style={styles.logo}
+          style={[styles.logo, { shadowColor: theme.primaryAccent }]}
           resizeMode="contain"
         />
 
@@ -106,6 +117,10 @@ export default function QuizScreen() {
           style={[
             styles.scoreContainer,
             {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.primaryAccent,
+              shadowColor: theme.shadowColor,
+              elevation: 5,
               opacity: fadeAnim,
               transform: [
                 { translateY: slideAnim },
@@ -117,30 +132,43 @@ export default function QuizScreen() {
             }
           ]}
         >
-          <Icon name="trophy-award" size={80} color="#4CC9F0" style={styles.trophyIcon} />
-          <Text style={styles.scoreTitle}>Amazing Job! 🎉</Text>
-          <Text style={styles.scoreText}>You got {score} out of {quiz.length} correct!</Text>
-          <View style={styles.moleculeRow}>
-            <Icon name="molecule-co2" size={32} color="#4CC9F0" style={styles.moleculeIcon} />
-            <Icon name="beaker" size={32} color="#4CC9F0" style={styles.moleculeIcon} />
-            <Icon name="flask" size={32} color="#4CC9F0" style={styles.moleculeIcon} />
+          <Icon name="trophy-award" size={80} color={theme.primaryAccent} style={styles.trophyIcon} />
+          <Text style={[styles.scoreTitle, { color: theme.primaryAccent }]}>Amazing Job! 🎉</Text>
+          <Text style={[styles.scoreText, { color: theme.titleText }]}>You got {score} out of {quiz.length} correct!</Text>
+          <View style={[styles.moleculeRow, { 
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.primaryAccent,
+          }]}>
+            <Icon name="molecule-co2" size={32} color={theme.primaryAccent} style={styles.moleculeIcon} />
+            <Icon name="beaker" size={32} color={theme.primaryAccent} style={styles.moleculeIcon} />
+            <Icon name="flask" size={32} color={theme.primaryAccent} style={styles.moleculeIcon} />
           </View>
           
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={[styles.button, styles.restartButton]} 
+              style={[styles.button, styles.restartButton, { 
+                backgroundColor: theme.buttonPrimary,
+                borderColor: theme.primaryAccent,
+                shadowColor: theme.shadowColor,
+                elevation: 5,
+              }]} 
               onPress={restartQuiz}
             >
-              <Icon name="restart" size={24} color="#FFFFFF" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Restart Quiz</Text>
+              <Icon name="restart" size={24} color={theme.titleText} style={styles.buttonIcon} />
+              <Text style={[styles.buttonText, { color: theme.titleText }]}>Restart Quiz</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.button, styles.homeButton]} 
+              style={[styles.button, styles.homeButton, { 
+                backgroundColor: theme.buttonSecondary,
+                borderColor: theme.secondaryAccent,
+                shadowColor: theme.shadowColor,
+                elevation: 5,
+              }]} 
               onPress={() => navigation.navigate('Home')}
             >
-              <Icon name="home" size={24} color="#FFFFFF" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Go Home</Text>
+              <Icon name="home" size={24} color={theme.titleText} style={styles.buttonIcon} />
+              <Text style={[styles.buttonText, { color: theme.titleText }]}>Go Home</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -151,33 +179,43 @@ export default function QuizScreen() {
   const q = quiz[qIndex];
 
   return (
-    <View style={styles.container}>
+    <View 
+      key={theme.background}
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
       <Image 
         source={require('../assets/logo.png')}
-        style={styles.logo}
+        style={[styles.logo, { shadowColor: theme.primaryAccent }]}
         resizeMode="contain"
       />
 
       <TouchableOpacity 
-        style={styles.backButton}
+        style={[styles.backButton, { 
+          backgroundColor: theme.buttonPrimary,
+          borderColor: theme.primaryAccent,
+          shadowColor: theme.shadowColor,
+          elevation: 5,
+        }]}
         onPress={() => handlePress(() => navigation.goBack())}
       >
-        <Text style={styles.backButtonText}>Back</Text>
-        <Icon name="arrow-right" size={24} color="#FFFFFF" />
+        <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
+        <Icon name="arrow-right" size={24} color={theme.titleText} />
       </TouchableOpacity>
 
       <Animated.View 
         style={[
           styles.header,
           {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.primaryAccent,
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
           }
         ]}
       >
-        <Icon name="atom-variant" size={40} color="#4CC9F0" style={styles.headerIcon} />
-        <Text style={styles.questionNum}>
-          Question {qIndex + 1} <Text style={styles.questionTotal}>/ {quiz.length}</Text>
+        <Icon name="atom-variant" size={40} color={theme.primaryAccent} style={styles.headerIcon} />
+        <Text style={[styles.questionNum, { color: theme.titleText }]}>
+          Question {qIndex + 1} <Text style={[styles.questionTotal, { color: theme.primaryAccent }]}>/ {quiz.length}</Text>
         </Text>
       </Animated.View>
 
@@ -185,6 +223,10 @@ export default function QuizScreen() {
         style={[
           styles.contentContainer,
           {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.primaryAccent,
+            shadowColor: theme.shadowColor,
+            elevation: 5,
             opacity: fadeAnim,
             transform: [
               { translateY: slideAnim },
@@ -196,12 +238,18 @@ export default function QuizScreen() {
           }
         ]}
       >
-        <Text style={styles.question}>{q.question}</Text>
+        <Text style={[styles.question, { color: theme.titleText }]}>{q.question}</Text>
         {q.choices.map((choice, idx) => (
           <TouchableOpacity
             key={idx}
             style={[
               styles.choice,
+              {
+                backgroundColor: theme.buttonSecondary,
+                borderColor: theme.primaryAccent,
+                shadowColor: theme.shadowColor,
+                elevation: 3,
+              },
               selected && choice === q.answer && styles.correctChoice,
               selected && choice === selected && choice !== q.answer && styles.incorrectChoice,
             ]}
@@ -211,6 +259,7 @@ export default function QuizScreen() {
           >
             <Text style={[
               styles.choiceText,
+              { color: theme.titleText },
               selected && (choice === q.answer || choice === selected) && styles.selectedChoiceText
             ]}>
               {choice}
@@ -229,14 +278,16 @@ export default function QuizScreen() {
         style={[
           styles.moleculeRow,
           {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.primaryAccent,
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
           }
         ]}
       >
-        <Icon name="molecule-co2" size={32} color="#4CC9F0" style={styles.moleculeIcon} />
-        <Icon name="beaker" size={32} color="#4CC9F0" style={styles.moleculeIcon} />
-        <Icon name="flask" size={32} color="#4CC9F0" style={styles.moleculeIcon} />
+        <Icon name="molecule-co2" size={32} color={theme.primaryAccent} style={styles.moleculeIcon} />
+        <Icon name="beaker" size={32} color={theme.primaryAccent} style={styles.moleculeIcon} />
+        <Icon name="flask" size={32} color={theme.primaryAccent} style={styles.moleculeIcon} />
       </Animated.View>
     </View>
   );
@@ -248,7 +299,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: wp('4'),
-    backgroundColor: "#0D1117",
     paddingTop: Platform.OS === 'ios' ? hp('6') : hp('4'),
   },
   logo: {
@@ -258,7 +308,6 @@ const styles = StyleSheet.create({
     width: wp('15'),
     height: wp('15'),
     zIndex: 10,
-    shadowColor: '#4CC9F0',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: wp('2'),
@@ -269,54 +318,42 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: hp('2.5'),
     alignSelf: "flex-start",
-    backgroundColor: "rgba(76, 201, 240, 0.1)",
     padding: wp('2.5'),
     borderRadius: wp('3'),
     borderWidth: 2,
-    borderColor: "#4CC9F0",
   },
   headerIcon: {
     marginRight: wp('2'),
-    textShadowColor: "rgba(76, 201, 240, 0.4)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: wp('2'),
   },
   questionNum: {
     fontSize: wp('5'),
-    color: "#FFFFFF",
     fontWeight: "700",
     letterSpacing: 0.5,
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
   },
   questionTotal: {
-    color: "#4CC9F0",
     opacity: 0.8,
   },
   contentContainer: {
     width: "100%",
-    backgroundColor: "rgba(76, 201, 240, 0.1)",
     padding: wp('4'),
     borderRadius: wp('4'),
     borderWidth: 2,
-    borderColor: "#4CC9F0",
-    shadowColor: "#4CC9F0",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: wp('2'),
-    elevation: 5,
   },
   question: {
     fontSize: wp('4.5'),
     marginBottom: hp('2'),
-    color: "#FFFFFF",
     fontWeight: "600",
     textAlign: "left",
     lineHeight: hp('3'),
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
   },
   choice: {
-    backgroundColor: "rgba(76, 201, 240, 0.25)",
-    borderColor: "#4CC9F0",
     borderWidth: 2,
     padding: wp('3'),
     marginBottom: hp('1.5'),
@@ -324,13 +361,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
-    shadowColor: "#4CC9F0",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: wp('1.5'),
-    elevation: 3,
     borderBottomWidth: 4,
-    borderBottomColor: "rgba(76, 201, 240, 0.4)",
   },
   correctChoice: {
     backgroundColor: "rgba(76, 240, 117, 0.4)",
@@ -344,11 +378,9 @@ const styles = StyleSheet.create({
   },
   choiceText: {
     fontSize: wp('4'),
-    color: "#FFFFFF",
     fontWeight: "700",
     flex: 1,
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
@@ -363,50 +395,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: hp('2.5'),
-    backgroundColor: "rgba(76, 201, 240, 0.1)",
     padding: wp('2.5'),
     borderRadius: wp('3'),
     borderWidth: 2,
-    borderColor: "#4CC9F0",
   },
   moleculeIcon: {
     margin: wp('1.5'),
-    textShadowColor: "rgba(76, 201, 240, 0.4)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: wp('2'),
   },
   scoreContainer: {
     alignItems: "center",
-    backgroundColor: "rgba(76, 201, 240, 0.1)",
     padding: wp('6'),
     borderRadius: wp('4'),
     borderWidth: 2,
-    borderColor: "#4CC9F0",
-    shadowColor: "#4CC9F0",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: wp('2'),
-    elevation: 5,
   },
   trophyIcon: {
     marginBottom: hp('2'),
-    textShadowColor: "rgba(76, 201, 240, 0.4)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: wp('2'),
   },
   scoreTitle: {
     fontSize: wp('6'),
-    color: "#4CC9F0",
     fontWeight: "800",
     marginBottom: hp('1'),
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
-    textShadowColor: "rgba(76, 201, 240, 0.4)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: wp('2'),
   },
   scoreText: {
     fontSize: wp('4.5'),
-    color: "#FFFFFF",
     fontWeight: "600",
     marginBottom: hp('2'),
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif',
@@ -426,33 +447,23 @@ const styles = StyleSheet.create({
     padding: wp('3'),
     borderRadius: wp('3'),
     borderWidth: 2,
-    shadowColor: "#4CC9F0",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: wp('2'),
-    elevation: 5,
   },
   restartButton: {
-    backgroundColor: "rgba(76, 201, 240, 0.25)",
-    borderColor: "#4CC9F0",
     borderBottomWidth: 4,
-    borderBottomColor: "rgba(76, 201, 240, 0.4)",
   },
   homeButton: {
-    backgroundColor: "rgba(76, 240, 117, 0.25)",
-    borderColor: "#4CF075",
     borderBottomWidth: 4,
-    borderBottomColor: "rgba(76, 240, 117, 0.4)",
   },
   buttonText: {
     fontSize: wp('4'),
-    color: "#FFFFFF",
     fontWeight: "700",
     marginLeft: wp('1.5'),
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
   },
   buttonIcon: {
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
@@ -463,23 +474,17 @@ const styles = StyleSheet.create({
     zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(76, 201, 240, 0.25)',
     padding: wp('2.5'),
     paddingHorizontal: wp('3'),
     borderRadius: wp('3'),
     borderWidth: 2,
-    borderColor: '#4CC9F0',
     borderBottomWidth: 4,
-    borderBottomColor: 'rgba(76, 201, 240, 0.4)',
-    shadowColor: "#4CC9F0",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: wp('2'),
-    elevation: 5,
   },
   backButtonText: {
     fontSize: wp('4'),
-    color: "#FFFFFF",
     fontWeight: "700",
     marginRight: wp('1.5'),
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
