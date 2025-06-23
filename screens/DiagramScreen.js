@@ -11,6 +11,7 @@ import {
   Platform,
   LayoutAnimation,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import Svg, { Path, Circle, Rect, Text as SvgText, Line, Polygon } from "react-native-svg";
 import Slider from "@react-native-community/slider";
@@ -43,21 +44,55 @@ const clamp = (min, val, max) => Math.min(Math.max(val, min), max);
 const kelvinToCelsius = (kelvin) => kelvin - 273.15;
 const celsiusToKelvin = (celsius) => celsius + 273.15;
 
-// Responsive values
+// Responsive values - comprehensive and dynamic
 const fontTitle = clamp(20, SCREEN_WIDTH * 0.06, 28);
 const fontSubtitle = clamp(12, SCREEN_WIDTH * 0.035, 16);
 const fontPhase = clamp(14, SCREEN_WIDTH * 0.04, 19);
-const fontSlider = clamp(12, SCREEN_WIDTH * 0.035, 15);
-const fontInput = clamp(12, SCREEN_WIDTH * 0.035, 15);
-const moleculeSize = clamp(60, SCREEN_WIDTH * 0.15, 74);
-const inputWidth = clamp(80, SCREEN_WIDTH * 0.18, 120);
-const inputHeight = clamp(24, SCREEN_HEIGHT * 0.03, 30);
-const logoSize = clamp(60, SCREEN_WIDTH * 0.12, 62);
-const thermometerHeight = clamp(150, SCREEN_HEIGHT * 0.18, 180);
-const thermometerWidth = clamp(50, SCREEN_WIDTH * 0.10, 60);
-const helpButtonSize = clamp(32, SCREEN_WIDTH * 0.08, 38);
-const backButtonPadding = clamp(6, SCREEN_WIDTH * 0.010, 8);
-const backButtonFont = clamp(14, SCREEN_WIDTH * 0.04, 16);
+const fontSlider = clamp(11, SCREEN_WIDTH * 0.025, 14);
+const fontInput = clamp(11, SCREEN_WIDTH * 0.030, 15);
+const fontPhaseLabel = clamp(16, SCREEN_WIDTH * 0.045, 22);
+const fontPhaseValue = clamp(16, SCREEN_WIDTH * 0.045, 22);
+const fontWarning = clamp(10, SCREEN_WIDTH * 0.025, 14);
+const fontLinkLabel = clamp(12, SCREEN_WIDTH * 0.035, 16);
+const fontBackButton = clamp(14, SCREEN_WIDTH * 0.04, 18);
+const fontHelpButton = clamp(20, SCREEN_WIDTH * 0.045, 26);
+
+// Component sizes
+const moleculeSize = clamp(60, SCREEN_WIDTH * 0.15, 80);
+const inputWidth = clamp(80, SCREEN_WIDTH * 0.18, 140);
+const inputHeight = clamp(24, SCREEN_HEIGHT * 0.03, 36);
+const logoSize = clamp(50, SCREEN_WIDTH * 0.10, 70);
+const thermometerHeight = clamp(130, SCREEN_HEIGHT * 0.12, 180);
+const thermometerWidth = clamp(60, SCREEN_WIDTH * 0.08, 60);
+const helpButtonSize = clamp(40, SCREEN_WIDTH * 0.06, 48);
+const linkButtonSize = clamp(40, SCREEN_WIDTH * 0.06, 48);
+const backButtonSize = clamp(32, SCREEN_WIDTH * 0.08, 48);
+
+// Spacing and margins
+const mainPadding = clamp(4, SCREEN_WIDTH * 0.01, 8);
+const centerPadding = clamp(6, SCREEN_WIDTH * 0.015, 12);
+const rightPanelPadding = clamp(4, SCREEN_WIDTH * 0.01, 8);
+const diagramMargin = clamp(2, SCREEN_HEIGHT * 0.05, 10);
+const sidebarPadding = clamp(20, SCREEN_HEIGHT * 0.02, 40);
+const contentPadding = clamp(4, SCREEN_WIDTH * 0.01, 8);
+const headerMargin = clamp(4, SCREEN_HEIGHT * 0.005, 8);
+const sliderMargin = clamp(6, SCREEN_HEIGHT * 0.008, 12);
+const inputMargin = clamp(3, SCREEN_HEIGHT * 0.004, 6);
+const phaseMargin = clamp(8, SCREEN_HEIGHT * 0.01, 16);
+const moleculeMargin = clamp(8, SCREEN_HEIGHT * 0.01, 16);
+
+// Border radius and shadows
+const borderRadius = clamp(8, SCREEN_WIDTH * 0.02, 20);
+const shadowRadius = clamp(3, SCREEN_WIDTH * 0.015, 8);
+const elevation = clamp(3, SCREEN_WIDTH * 0.01, 8);
+
+// Position values
+const backButtonTop = Platform.OS === 'ios' ? clamp(30, SCREEN_HEIGHT * 0.04, 60) : clamp(15, SCREEN_HEIGHT * 0.02, 30);
+const backButtonRight = clamp(15, SCREEN_WIDTH * 0.04, 25);
+const sidebarWidth = clamp(120, SCREEN_WIDTH * 0.15, 200);
+const diagramMaxWidth = clamp(800, SCREEN_WIDTH * 0.25, 400);
+const diagramMaxHeight = clamp(200, SCREEN_HEIGHT * 0.50, 300);
+const rightPanelMinWidth = clamp(80, SCREEN_WIDTH * 0.08, 120);
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -119,7 +154,7 @@ const homePlaceholder = { uri: "https://via.placeholder.com/40x40?text=Home" };
 // Triple and critical points for water (IAPWS standard)
 const T_TRIPLE = 273.16;  // K (0.01 °C)
 const P_TRIPLE = 0.006117; // atm (4.58 mmHg) - corrected to match fusion curve
-const T_CRITICAL = 647.096; // K
+const T_CRITICAL = 647.15; // K (374.0 °C) - updated to match boundary points
 const P_CRITICAL = 218.0; // atm - corrected to match vapor pressure data
 
 // Ice phase transition temperatures at 1 atm
@@ -368,16 +403,23 @@ function getPhase(T, P) {
     return "Liquid"; // Default to liquid at triple point for simulation
   }
   
-  // Supercritical region
-  if (T >= T_CRITICAL && P >= P_CRITICAL) {
+  // Handle critical point exactly (374.1°C, 218 atm)
+  if (Math.abs(T - T_CRITICAL) < 0.01 && Math.abs(P - P_CRITICAL) < 0.1) {
+    return "Critical"; // Special phase at critical point
+  }
+  
+  // Supercritical region (strictly above critical point)
+  if (T > T_CRITICAL && P > P_CRITICAL) {
     return "Supercritical";
   }
   
-  // Above critical temperature
-  if (T >= T_CRITICAL) {
-    if (P < P_CRITICAL) {
+  // Above critical temperature but below critical pressure
+  if (T > T_CRITICAL && P <= P_CRITICAL) {
       return "Gas";
     }
+  
+  // At critical temperature but above critical pressure
+  if (Math.abs(T - T_CRITICAL) < 0.01 && P > P_CRITICAL) {
     return "Supercritical";
   }
   
@@ -395,20 +437,22 @@ function getPhase(T, P) {
   
   // Between triple point and critical temperature
   if (T >= T_TRIPLE && T < T_CRITICAL) {
+    // Check vaporization curve (liquid-gas boundary)
+    const vaporP = accurateVaporPressure(T);
+    
     // Check fusion curve (solid-liquid boundary)
     const fusionP = accurateFusionCurve(T);
     
-    // If pressure is above fusion curve, check vaporization curve
-    if (P >= fusionP) {
-      const vaporP = accurateVaporPressure(T);
-      
-      if (P < vaporP) {
-        return "Gas";
-      } else {
-        return "Liquid";
-      }
-    } else {
-      // Pressure is below fusion curve - solid region
+    // If pressure is below vaporization curve, it's gas
+    if (P < vaporP) {
+      return "Gas";
+    }
+    // If pressure is above fusion curve, it's liquid
+    else if (P >= fusionP) {
+      return "Liquid";
+    }
+    // If pressure is between vaporization and fusion curves, it's solid
+    else {
       return "Solid";
     }
   }
@@ -422,15 +466,16 @@ const phaseColors = {
   "Solid": "#4a90e2",
   "Liquid": "#7ed957",
   "Gas": "#ffa500",
+  "Critical": "#ff1493", // Deep pink for critical point
   "Supercritical": "#ff7eeb",
 };
 
 // --- Molecule Sim ---
 function MoleculeSim({ phase, width = 70, height = 70 }) {
   const MAX_MOLS = 9;
-  // Map any ice phase to "Solid" for animation
+  // Map any ice phase to "Solid" for animation, and handle Critical phase
   const animationPhase = phase.startsWith("Ice") ? "Solid" : phase;
-  const count = animationPhase === "Solid" ? 9 : animationPhase === "Liquid" ? 8 : 6;
+  const count = animationPhase === "Solid" ? 9 : animationPhase === "Liquid" ? 8 : animationPhase === "Critical" ? 7 : 6;
   const progress = useSharedValue(0);
   const transitionProgress = useSharedValue(0);
   const mols = useRef(
@@ -610,23 +655,17 @@ function accurateFusionCurve(T) {
   // More accurate data points for water fusion curve (IAPWS standard)
   const fusionData = [
     { P: 0.006117, T: 273.16 }, // triple point (exact)
-    { P: 0.01, T: 273.14 },
-    { P: 0.1, T: 273.00 },
-    { P: 1, T: 272.25 },
-    { P: 10, T: 270.2 },
-    { P: 50, T: 263.0 },
-    { P: 100, T: 252.0 },
-    { P: 150, T: 245.0 },
-    { P: 200, T: 240.0 },
-    { P: 250, T: 235.0 },
-    { P: 300, T: 230.0 },
-    { P: 400, T: 220.0 },
-    { P: 500, T: 210.0 },
-    { P: 600, T: 200.0 },
-    { P: 700, T: 190.0 },
-    { P: 800, T: 180.0 },
-    { P: 900, T: 170.0 },
-    { P: 1000, T: 160.0 }
+    { P: 0.01, T: 273.15 },
+    { P: 0.1, T: 273.15 },
+    { P: 1, T: 273.15 },        // freezing point at 1 atm and 0°C (273.15 K)
+    { P: 10, T: 273.14 },
+    { P: 50, T: 273.13 },
+    { P: 100, T: 273.12 },
+    { P: 130, T: 273.11 },
+    { P: 150, T: 273.10 },
+    { P: 200, T: 273.09 },
+    { P: 250, T: 273.08 },
+    { P: 300, T: 273.07 },      // Extended to 300 atm - nearly vertical
   ];
   
   // Find the appropriate segment for interpolation
@@ -655,16 +694,912 @@ function accurateFusionCurve(T) {
 
 // Add color interpolation function before DiagramScreen
 const interpolateColor = (temp, minT, maxT) => {
-  // Normalize temperature to 0-1 range
-  const normalizedTemp = (temp - minT) / (maxT - minT);
-  // Define color stops - adjusted for better visibility in both themes
-  const coldColor = { r: 74, g: 144, b: 226 }; // Blue (#4a90e2)
-  const hotColor = { r: 255, g: 69, b: 69 };   // Bright red (#ff4545)
-  // Interpolate between colors
-  const r = Math.round(coldColor.r + (hotColor.r - coldColor.r) * normalizedTemp);
-  const g = Math.round(coldColor.g + (hotColor.g - coldColor.g) * normalizedTemp);
-  const b = Math.round(coldColor.b + (hotColor.b - coldColor.b) * normalizedTemp);
-  return `rgb(${r}, ${g}, ${b})`;
+  // Convert temperature from Kelvin to Celsius
+  const tempCelsius = kelvinToCelsius(temp);
+  
+  // Define color ranges based on temperature and phase
+  if (tempCelsius <= 0) {
+    // -73°C to 0°C: Solid / Freezing - Dark Blue → Blue
+    const normalizedTemp = Math.max(0, (tempCelsius + 73) / 73); // Normalize from -73 to 0°C
+    const darkBlue = { r: 0, g: 0, b: 139 }; // Dark Blue
+    const blue = { r: 0, g: 0, b: 255 };     // Blue
+    const r = Math.round(darkBlue.r + (blue.r - darkBlue.r) * normalizedTemp);
+    const g = Math.round(darkBlue.g + (blue.g - darkBlue.g) * normalizedTemp);
+    const b = Math.round(darkBlue.b + (blue.b - darkBlue.b) * normalizedTemp);
+    return `rgb(${r}, ${g}, ${b})`;
+  } else if (tempCelsius <= 25) {
+    // 0°C to 25°C: Melting → Room Temp - Blue → Cyan → Green
+    const normalizedTemp = (tempCelsius - 0) / 25; // Normalize from 0 to 25°C
+    const blue = { r: 0, g: 0, b: 255 };     // Blue
+    const cyan = { r: 0, g: 255, b: 255 };   // Cyan
+    const green = { r: 0, g: 255, b: 0 };    // Green
+    
+    if (normalizedTemp <= 0.5) {
+      // Blue to Cyan
+      const t = normalizedTemp * 2;
+      const r = Math.round(blue.r + (cyan.r - blue.r) * t);
+      const g = Math.round(blue.g + (cyan.g - blue.g) * t);
+      const b = Math.round(blue.b + (cyan.b - blue.b) * t);
+      return `rgb(${r}, ${g}, ${b})`;
+    } else {
+      // Cyan to Green
+      const t = (normalizedTemp - 0.5) * 2;
+      const r = Math.round(cyan.r + (green.r - cyan.r) * t);
+      const g = Math.round(cyan.g + (green.g - cyan.g) * t);
+      const b = Math.round(cyan.b + (green.b - cyan.b) * t);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+  } else if (tempCelsius <= 100) {
+    // 25°C to 100°C: Liquid - Green → Yellow → Orange
+    const normalizedTemp = (tempCelsius - 25) / 75; // Normalize from 25 to 100°C
+    const green = { r: 0, g: 255, b: 0 };    // Green
+    const yellow = { r: 255, g: 255, b: 0 }; // Yellow
+    const orange = { r: 255, g: 165, b: 0 }; // Orange
+    
+    if (normalizedTemp <= 0.5) {
+      // Green to Yellow
+      const t = normalizedTemp * 2;
+      const r = Math.round(green.r + (yellow.r - green.r) * t);
+      const g = Math.round(green.g + (yellow.g - green.g) * t);
+      const b = Math.round(green.b + (yellow.b - green.b) * t);
+      return `rgb(${r}, ${g}, ${b})`;
+    } else {
+      // Yellow to Orange
+      const t = (normalizedTemp - 0.5) * 2;
+      const r = Math.round(yellow.r + (orange.r - yellow.r) * t);
+      const g = Math.round(yellow.g + (orange.g - yellow.g) * t);
+      const b = Math.round(yellow.b + (orange.b - yellow.b) * t);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+  } else if (tempCelsius <= 374) {
+    // 100°C to 374°C: Gas - Orange → Red
+    const normalizedTemp = (tempCelsius - 100) / 274; // Normalize from 100 to 374°C
+    const orange = { r: 255, g: 165, b: 0 }; // Orange
+    const red = { r: 255, g: 0, b: 0 };      // Red
+    const r = Math.round(orange.r + (red.r - orange.r) * normalizedTemp);
+    const g = Math.round(orange.g + (red.g - orange.g) * normalizedTemp);
+    const b = Math.round(orange.b + (red.b - orange.b) * normalizedTemp);
+    return `rgb(${r}, ${g}, ${b})`;
+  } else if (tempCelsius <= 374.1) {
+    // 374°C (critical point): Transition - Crimson
+    return `rgb(220, 20, 60)`; // Crimson
+  } else {
+    // 374°C to 427°C: Supercritical fluid - Red → Magenta → Purple
+    const normalizedTemp = Math.min(1, (tempCelsius - 374) / 53); // Normalize from 374 to 427°C
+    const red = { r: 255, g: 0, b: 0 };        // Red
+    const magenta = { r: 255, g: 0, b: 255 };  // Magenta
+    const purple = { r: 128, g: 0, b: 128 };   // Purple
+    
+    if (normalizedTemp <= 0.5) {
+      // Red to Magenta
+      const t = normalizedTemp * 2;
+      const r = Math.round(red.r + (magenta.r - red.r) * t);
+      const g = Math.round(red.g + (magenta.g - red.g) * t);
+      const b = Math.round(red.b + (magenta.b - red.b) * t);
+      return `rgb(${r}, ${g}, ${b})`;
+    } else {
+      // Magenta to Purple
+      const t = (normalizedTemp - 0.5) * 2;
+      const r = Math.round(magenta.r + (purple.r - magenta.r) * t);
+      const g = Math.round(magenta.g + (purple.g - magenta.g) * t);
+      const b = Math.round(magenta.b + (purple.b - magenta.b) * t);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+  }
+};
+
+// Function to calculate pressure based on the visual boundary (using smooth interpolation)
+const getVisualCurvePressure = (temperature) => {
+  // Use the exact boundary points that are shown as dots on the diagram
+  // Added more intermediate points for smoother interpolation
+  const boundaryPoints = [
+    [200, 0.001], // Start point (red dot)
+    [225, 0.002], // Intermediate point
+    [250, 0.003], // Control point 1 (orange dot)
+    [260, 0.004], // Intermediate point
+    [270, 0.005], // Intermediate point
+    [273.16, 0.006117], // Triple point (yellow dot)
+    [275, 0.0065], // Intermediate point
+    [280, 0.007117], // Intermediate point
+    [285, 0.009117], // Intermediate point
+    [290, 0.011117], // Intermediate point
+    [291, 0.015117], // 18°C - adjusted to be lower
+    [292, 0.016], // Intermediate point
+    [293, 0.017], // Intermediate point
+    [294, 0.018], // Intermediate point
+    [295, 0.013117], // Intermediate point
+    [296, 0.020], // Intermediate point
+    [297, 0.021], // Intermediate point
+    [298, 0.022], // Intermediate point
+    [299, 0.023], // Intermediate point
+    [300, 0.019117], // Intermediate point - adjusted
+    [301, 0.025], // Intermediate point
+    [302, 0.026], // Intermediate point
+    [303, 0.027], // Intermediate point
+    [304, 0.028], // Intermediate point
+    [305, 0.031117], // Intermediate point
+    [306, 0.032], // Intermediate point
+    [307, 0.033], // Intermediate point
+    [308, 0.034], // Intermediate point
+    [309, 0.035], // Intermediate point
+    [310, 0.043117], // Intermediate point
+    [311, 0.044], // Intermediate point
+    [312, 0.045], // Intermediate point
+    [313, 0.046], // Intermediate point
+    [314, 0.047], // Intermediate point
+    [315, 0.056117], // Intermediate point
+    [316, 0.057], // Intermediate point
+    [317, 0.058], // Intermediate point
+    [318, 0.059], // Intermediate point
+    [319, 0.060], // Intermediate point
+    [320, 0.067117], // Intermediate point
+    [321, 0.068], // Intermediate point
+    [322, 0.069], // Intermediate point
+    [323, 0.070], // Intermediate point
+    [324, 0.071], // Intermediate point
+    [325, 0.079117], // Intermediate point
+    [326, 0.080], // Intermediate point
+    [327, 0.081], // Intermediate point
+    [328, 0.082], // Intermediate point
+    [329, 0.083], // Intermediate point
+    [330, 0.091117], // Intermediate point
+    [331, 0.092], // Intermediate point
+    [332, 0.093], // Intermediate point
+    [333, 0.094], // Intermediate point
+    [334, 0.095], // Intermediate point
+    [335, 0.199], // Intermediate point
+    [336, 0.200], // Intermediate point
+    [337, 0.201], // Intermediate point
+    [338, 0.202], // Intermediate point
+    [339, 0.203], // Intermediate point
+    [340, 0.230], // Intermediate point
+    [341, 0.231], // Intermediate point
+    [342, 0.232], // Intermediate point
+    [343, 0.233], // Intermediate point
+    [344, 0.234], // Intermediate point
+    [345, 0.292], // Intermediate point
+    [346, 0.293], // Intermediate point
+    [347, 0.294], // Intermediate point
+    [348, 0.295], // Intermediate point
+    [349, 0.296], // Intermediate point
+    [350, 0.380], // Control point 2 (green dot) - adjusted
+    [351, 0.390], // Intermediate point
+    [352, 0.400], // Intermediate point
+    [353, 0.410], // Intermediate point
+    [354, 0.420], // Intermediate point
+    [355, 0.490], // Intermediate point
+    [356, 0.500], // Intermediate point
+    [357, 0.510], // Intermediate point
+    [358, 0.520], // Intermediate point
+    [359, 0.530], // Intermediate point
+    [360, 0.580], // Intermediate point
+    [361, 0.590], // Intermediate point
+    [362, 0.600], // Intermediate point
+    [363, 0.610], // Intermediate point
+    [364, 0.620], // Intermediate point
+    [365, 0.690], // Intermediate point
+    [366, 0.700], // Intermediate point
+    [367, 0.710], // Intermediate point
+    [368, 0.720], // Intermediate point
+    [369, 0.730], // Intermediate point
+    [370, 0.800], // Intermediate point
+    [371, 0.810], // Intermediate point
+    [372, 0.820], // Intermediate point
+    [373, 0.830], // Intermediate point
+    [373.15, 1], // Boiling point (light green dot) - adjusted
+    [374, 1.005], // Intermediate point
+    [375, 1.010], // Intermediate point
+    [376, 1.015], // Intermediate point
+    [377, 1.020], // Intermediate point
+    [378, 1.025], // Intermediate point
+    [379, 1.030], // Intermediate point
+    [380, 1.05], // Intermediate point
+    [381, 1.06], // Intermediate point
+    [382, 1.07], // Intermediate point
+    [383, 1.08], // Intermediate point
+    [384, 1.09], // Intermediate point
+    [385, 1.1], // Intermediate point
+    [386, 1.11], // Intermediate point
+    [387, 1.12], // Intermediate point
+    [388, 1.13], // Intermediate point
+    [389, 1.14], // Intermediate point
+    [390, 1.2], // Intermediate point
+    [391, 1.25], // Intermediate point
+    [392, 1.30], // Intermediate point
+    [393, 1.35], // Intermediate point
+    [394, 1.40], // Intermediate point
+    [395, 1.4], // Intermediate point
+    [396, 1.45], // Intermediate point
+    [397, 1.50], // Intermediate point
+    [398, 1.55], // Intermediate point
+    [399, 1.60], // Intermediate point
+    [400, 1.7], // Intermediate point
+    [401, 1.75], // Intermediate point
+    [402, 1.80], // Intermediate point
+    [403, 1.85], // Intermediate point
+    [404, 1.90], // Intermediate point
+    [405, 1.95], // Intermediate point
+    [406, 2.00], // Intermediate point
+    [407, 2.05], // Intermediate point
+    [408, 2.10], // Intermediate point
+    [409, 2.15], // Intermediate point
+    [410, 2.4], // Intermediate point
+    [411, 2.5], // Intermediate point
+    [412, 2.6], // Intermediate point
+    [413, 2.7], // Intermediate point
+    [414, 2.8], // Intermediate point
+    [415, 2.9], // Intermediate point
+    [416, 3.0], // Intermediate point
+    [417, 3.1], // Intermediate point
+    [418, 3.2], // Intermediate point
+    [419, 3.3], // Intermediate point
+    [420, 3], // Intermediate point
+    [421, 3.1], // Intermediate point
+    [422, 3.2], // Intermediate point
+    [423, 3.3], // Intermediate point
+    [424, 3.4], // Intermediate point
+    [425, 3.5], // Intermediate point
+    [426, 3.6], // Intermediate point
+    [427, 3.7], // Intermediate point
+    [428, 3.8], // Intermediate point
+    [429, 3.9], // Intermediate point
+    [430, 3.9], // Intermediate point
+    [431, 4.0], // Intermediate point
+    [432, 4.1], // Intermediate point
+    [433, 4.2], // Intermediate point
+    [434, 4.3], // Intermediate point
+    [435, 4.4], // Intermediate point
+    [436, 4.5], // Intermediate point
+    [437, 4.6], // Intermediate point
+    [438, 4.7], // Intermediate point
+    [439, 4.8], // Intermediate point
+    [440, 4.9], // Intermediate point
+    [441, 5.0], // Intermediate point
+    [442, 5.1], // Intermediate point
+    [443, 5.2], // Intermediate point
+    [444, 5.3], // Intermediate point
+    [445, 5.4], // Intermediate point
+    [446, 5.5], // Intermediate point
+    [447, 5.6], // Intermediate point
+    [448, 5.7], // Intermediate point
+    [449, 5.8], // Intermediate point
+    [450, 5.9], // Intermediate point
+    [451, 6.0], // Intermediate point
+    [452, 6.1], // Intermediate point
+    [453, 6.2], // Intermediate point
+    [454, 6.3], // Intermediate point
+    [455, 6.4], // Intermediate point
+    [456, 6.5], // Intermediate point
+    [457, 6.6], // Intermediate point
+    [458, 6.7], // Intermediate point
+    [459, 6.8], // Intermediate point
+    [460, 6.9], // Intermediate point
+    [461, 7.0], // Intermediate point
+    [462, 7.1], // Intermediate point
+    [463, 7.2], // Intermediate point
+    [464, 7.3], // Intermediate point
+    [465, 7.4], // Intermediate point
+    [466, 7.5], // Intermediate point
+    [467, 7.6], // Intermediate point
+    [468, 7.7], // Intermediate point
+    [469, 7.8], // Intermediate point
+    [470, 7.7], // Intermediate point
+    [471, 7.8], // Intermediate point
+    [472, 7.9], // Intermediate point
+    [473, 8.0], // Intermediate point
+    [474, 8.1], // Intermediate point
+    [475, 8.2], // Intermediate point
+    [476, 8.3], // Intermediate point
+    [477, 8.4], // Intermediate point
+    [478, 8.5], // Intermediate point
+    [479, 8.6], // Intermediate point
+    [480, 8.6], // Intermediate point
+    [481, 8.7], // Intermediate point
+    [482, 8.8], // Intermediate point
+    [483, 8.9], // Intermediate point
+    [484, 9.0], // Intermediate point
+    [485, 9.1], // Intermediate point
+    [486, 9.2], // Intermediate point
+    [487, 9.3], // Intermediate point
+    [488, 9.4], // Intermediate point
+    [489, 9.5], // Intermediate point
+    [490, 9.5], // Intermediate point
+    [491, 9.6], // Intermediate point
+    [492, 9.7], // Intermediate point
+    [493, 9.8], // Intermediate point
+    [494, 9.9], // Intermediate point
+    [495, 10.0], // Intermediate point
+    [496, 10.1], // Intermediate point
+    [497, 10.2], // Intermediate point
+    [498, 10.3], // Intermediate point
+    [499, 10.4], // Intermediate point
+    [500, 10.4], // Intermediate point
+    [501, 10.5], // Intermediate point
+    [502, 10.6], // Intermediate point
+    [503, 10.7], // Intermediate point
+    [504, 10.8], // Intermediate point
+    [505, 10.9], // Intermediate point
+    [506, 11.0], // Intermediate point
+    [507, 11.1], // Intermediate point
+    [508, 11.2], // Intermediate point
+    [509, 11.3], // Intermediate point
+    [510, 11.4], // Intermediate point
+    [511, 11.5], // Intermediate point
+    [512, 11.6], // Intermediate point
+    [513, 11.7], // Intermediate point
+    [514, 11.8], // Intermediate point
+    [515, 11.9], // Intermediate point
+    [516, 12.0], // Intermediate point
+    [517, 12.1], // Intermediate point
+    [518, 12.2], // Intermediate point
+    [519, 12.3], // Intermediate point
+    [520, 12.5], // Intermediate point
+    [521, 12.6], // Intermediate point
+    [522, 12.7], // Intermediate point
+    [523, 12.8], // Intermediate point
+    [524, 12.9], // Intermediate point
+    [525, 13.0], // Intermediate point
+    [526, 13.1], // Intermediate point
+    [527, 13.2], // Intermediate point
+    [528, 13.3], // Intermediate point
+    [529, 13.4], // Intermediate point
+    [530, 21], // Intermediate point
+    [531, 22], // Intermediate point
+    [532, 23], // Intermediate point
+    [533, 24], // Intermediate point
+    [534, 25], // Intermediate point
+    [535, 26], // Intermediate point
+    [536, 27], // Intermediate point
+    [537, 28], // Intermediate point
+    [538, 29], // Intermediate point
+    [539, 30], // Intermediate point
+    [540, 34], // Intermediate point
+    [541, 35], // Intermediate point
+    [542, 36], // Intermediate point
+    [543, 37], // Intermediate point
+    [544, 38], // Intermediate point
+    [545, 39], // Intermediate point
+    [546, 40], // Intermediate point
+    [547, 41], // Intermediate point
+    [548, 42], // Intermediate point
+    [549, 43], // Intermediate point
+    [550, 44], // Intermediate point
+    [551, 45], // Intermediate point
+    [552, 46], // Intermediate point
+    [553, 47], // Intermediate point
+    [554, 48], // Intermediate point
+    [555, 49], // Intermediate point
+    [556, 50], // Intermediate point
+    [557, 51], // Intermediate point
+    [558, 52], // Intermediate point
+    [559, 53], // Intermediate point
+    [560, 60], // Intermediate point
+    [561, 61], // Intermediate point
+    [562, 62], // Intermediate point
+    [563, 63], // Intermediate point
+    [564, 64], // Intermediate point
+    [565, 65], // Intermediate point
+    [566, 66], // Intermediate point
+    [567, 67], // Intermediate point
+    [568, 68], // Intermediate point
+    [569, 69], // Intermediate point
+    [570, 80], // Intermediate point
+    [571, 81], // Intermediate point
+    [572, 82], // Intermediate point
+    [573, 83], // Intermediate point
+    [574, 84], // Intermediate point
+    [575, 85], // Intermediate point
+    [576, 86], // Intermediate point
+    [577, 87], // Intermediate point
+    [578, 88], // Intermediate point
+    [579, 89], // Intermediate point
+    [580, 95], // Intermediate point
+    [581, 96], // Intermediate point
+    [582, 97], // Intermediate point
+    [583, 98], // Intermediate point
+    [584, 99], // Intermediate point
+    [585, 100], // Intermediate point
+    [586, 101], // Intermediate point
+    [587, 102], // Intermediate point
+    [588, 103], // Intermediate point
+    [589, 104], // Intermediate point
+    [590, 105], // Intermediate point
+    [591, 106], // Intermediate point
+    [592, 107], // Intermediate point
+    [593, 108], // Intermediate point
+    [594, 109], // Intermediate point
+    [595, 110], // Intermediate point
+    [596, 111], // Intermediate point
+    [597, 112], // Intermediate point
+    [598, 113], // Intermediate point
+    [599, 114], // Intermediate point
+    [600, 115], // Intermediate point
+    [601, 116], // Intermediate point
+    [602, 117], // Intermediate point
+    [603, 118], // Intermediate point
+    [604, 119], // Intermediate point
+    [605, 120], // Intermediate point
+    [606, 121], // Intermediate point
+    [607, 122], // Intermediate point
+    [608, 123], // Intermediate point
+    [609, 124], // Intermediate point
+    [610, 125], // Intermediate point
+    [611, 126], // Intermediate point
+    [612, 127], // Intermediate point
+    [613, 128], // Intermediate point
+    [614, 129], // Intermediate point
+    [615, 130], // Intermediate point
+    [616, 131], // Intermediate point
+    [617, 132], // Intermediate point
+    [618, 133], // Intermediate point
+    [619, 134], // Intermediate point
+    [620, 135], // Intermediate point
+    [621, 136], // Intermediate point
+    [622, 137], // Intermediate point
+    [623, 138], // Intermediate point
+    [624, 139], // Intermediate point
+    [625, 140], // Intermediate point
+    [626, 141], // Intermediate point
+    [627, 142], // Intermediate point
+    [628, 143], // Intermediate point
+    [629, 144], // Intermediate point
+    [630, 155], // Intermediate point
+    [631, 156], // Intermediate point
+    [632, 157], // Intermediate point
+    [633, 158], // Intermediate point
+    [634, 159], // Intermediate point
+    [635, 160], // Intermediate point
+    [636, 161], // Intermediate point
+    [637, 162], // Intermediate point
+    [638, 163], // Intermediate point
+    [639, 164], // Intermediate point
+    [640, 180], // Intermediate point
+    [641, 181], // Intermediate point
+    [642, 182], // Intermediate point
+    [643, 183], // Intermediate point
+    [644, 184], // Intermediate point
+    [645, 185], // Intermediate point
+    [646, 186], // Intermediate point
+    [647, 187], // Intermediate point
+    [647.15, 218] // Critical point (purple dot) - fixed value
+  ];
+  
+  // Handle edge cases
+  if (temperature <= 200) return 0.001;
+  if (temperature >= 647.096) return 218.0;
+  
+  // Find the two boundary points to interpolate between
+  for (let i = 0; i < boundaryPoints.length - 1; i++) {
+    const currentPoint = boundaryPoints[i];
+    const nextPoint = boundaryPoints[i + 1];
+    
+    if (temperature >= currentPoint[0] && temperature <= nextPoint[0]) {
+      // Linear interpolation between the two points
+      const t = (temperature - currentPoint[0]) / (nextPoint[0] - currentPoint[0]);
+      return currentPoint[1] + t * (nextPoint[1] - currentPoint[1]);
+    }
+  }
+  
+  // Fallback to nearest point if interpolation fails
+  let fallbackPoint = boundaryPoints[0];
+  let fallbackDistance = Math.abs(temperature - boundaryPoints[0][0]);
+  
+  for (let i = 1; i < boundaryPoints.length; i++) {
+    const distance = Math.abs(temperature - boundaryPoints[i][0]);
+    if (distance < fallbackDistance) {
+      fallbackDistance = distance;
+      fallbackPoint = boundaryPoints[i];
+    }
+  }
+  
+  return fallbackPoint[1];
+};
+
+// Function to find temperature based on pressure along the visual boundary (using smooth interpolation)
+const getVisualCurveTemperature = (pressure) => {
+  // Use the exact boundary points that are shown as dots on the diagram
+  // Added more intermediate points for smoother interpolation
+  const boundaryPoints = [
+    [200, 0.001], // Start point (red dot)
+    [225, 0.002], // Intermediate point
+    [250, 0.003], // Control point 1 (orange dot)
+    [260, 0.004], // Intermediate point
+    [270, 0.005], // Intermediate point
+    [273.16, 0.006117], // Triple point (yellow dot)
+    [275, 0.0065], // Intermediate point
+    [280, 0.007117], // Intermediate point
+    [285, 0.009117], // Intermediate point
+    [290, 0.011117], // Intermediate point
+    [291, 0.015117], // 18°C - adjusted to be lower
+    [292, 0.016], // Intermediate point
+    [293, 0.017], // Intermediate point
+    [294, 0.018], // Intermediate point
+    [295, 0.013117], // Intermediate point
+    [296, 0.020], // Intermediate point
+    [297, 0.021], // Intermediate point
+    [298, 0.022], // Intermediate point
+    [299, 0.023], // Intermediate point
+    [300, 0.019117], // Intermediate point - adjusted
+    [301, 0.025], // Intermediate point
+    [302, 0.026], // Intermediate point
+    [303, 0.027], // Intermediate point
+    [304, 0.028], // Intermediate point
+    [305, 0.031117], // Intermediate point
+    [306, 0.032], // Intermediate point
+    [307, 0.033], // Intermediate point
+    [308, 0.034], // Intermediate point
+    [309, 0.035], // Intermediate point
+    [310, 0.043117], // Intermediate point
+    [311, 0.044], // Intermediate point
+    [312, 0.045], // Intermediate point
+    [313, 0.046], // Intermediate point
+    [314, 0.047], // Intermediate point
+    [315, 0.056117], // Intermediate point
+    [316, 0.057], // Intermediate point
+    [317, 0.058], // Intermediate point
+    [318, 0.059], // Intermediate point
+    [319, 0.060], // Intermediate point
+    [320, 0.067117], // Intermediate point
+    [321, 0.068], // Intermediate point
+    [322, 0.069], // Intermediate point
+    [323, 0.070], // Intermediate point
+    [324, 0.071], // Intermediate point
+    [325, 0.079117], // Intermediate point
+    [326, 0.080], // Intermediate point
+    [327, 0.081], // Intermediate point
+    [328, 0.082], // Intermediate point
+    [329, 0.083], // Intermediate point
+    [330, 0.091117], // Intermediate point
+    [331, 0.092], // Intermediate point
+    [332, 0.093], // Intermediate point
+    [333, 0.094], // Intermediate point
+    [334, 0.095], // Intermediate point
+    [335, 0.199], // Intermediate point
+    [336, 0.200], // Intermediate point
+    [337, 0.201], // Intermediate point
+    [338, 0.202], // Intermediate point
+    [339, 0.203], // Intermediate point
+    [340, 0.230], // Intermediate point
+    [341, 0.231], // Intermediate point
+    [342, 0.232], // Intermediate point
+    [343, 0.233], // Intermediate point
+    [344, 0.234], // Intermediate point
+    [345, 0.292], // Intermediate point
+    [346, 0.293], // Intermediate point
+    [347, 0.294], // Intermediate point
+    [348, 0.295], // Intermediate point
+    [349, 0.296], // Intermediate point
+    [350, 0.380], // Control point 2 (green dot) - adjusted
+    [351, 0.390], // Intermediate point
+    [352, 0.400], // Intermediate point
+    [353, 0.410], // Intermediate point
+    [354, 0.420], // Intermediate point
+    [355, 0.490], // Intermediate point
+    [356, 0.500], // Intermediate point
+    [357, 0.510], // Intermediate point
+    [358, 0.520], // Intermediate point
+    [359, 0.530], // Intermediate point
+    [360, 0.580], // Intermediate point
+    [361, 0.590], // Intermediate point
+    [362, 0.600], // Intermediate point
+    [363, 0.610], // Intermediate point
+    [364, 0.620], // Intermediate point
+    [365, 0.690], // Intermediate point
+    [366, 0.700], // Intermediate point
+    [367, 0.710], // Intermediate point
+    [368, 0.720], // Intermediate point
+    [369, 0.730], // Intermediate point
+    [370, 0.800], // Intermediate point
+    [371, 0.810], // Intermediate point
+    [372, 0.820], // Intermediate point
+    [373, 0.830], // Intermediate point
+    [373.15, 1], // Boiling point (light green dot) - adjusted
+    [374, 1.005], // Intermediate point
+    [375, 1.010], // Intermediate point
+    [376, 1.015], // Intermediate point
+    [377, 1.020], // Intermediate point
+    [378, 1.025], // Intermediate point
+    [379, 1.030], // Intermediate point
+    [380, 1.05], // Intermediate point
+    [381, 1.06], // Intermediate point
+    [382, 1.07], // Intermediate point
+    [383, 1.08], // Intermediate point
+    [384, 1.09], // Intermediate point
+    [385, 1.1], // Intermediate point
+    [386, 1.11], // Intermediate point
+    [387, 1.12], // Intermediate point
+    [388, 1.13], // Intermediate point
+    [389, 1.14], // Intermediate point
+    [390, 1.2], // Intermediate point
+    [391, 1.25], // Intermediate point
+    [392, 1.30], // Intermediate point
+    [393, 1.35], // Intermediate point
+    [394, 1.40], // Intermediate point
+    [395, 1.4], // Intermediate point
+    [396, 1.45], // Intermediate point
+    [397, 1.50], // Intermediate point
+    [398, 1.55], // Intermediate point
+    [399, 1.60], // Intermediate point
+    [400, 1.7], // Intermediate point
+    [401, 1.75], // Intermediate point
+    [402, 1.80], // Intermediate point
+    [403, 1.85], // Intermediate point
+    [404, 1.90], // Intermediate point
+    [405, 1.95], // Intermediate point
+    [406, 2.00], // Intermediate point
+    [407, 2.05], // Intermediate point
+    [408, 2.10], // Intermediate point
+    [409, 2.15], // Intermediate point
+    [410, 2.4], // Intermediate point
+    [411, 2.5], // Intermediate point
+    [412, 2.6], // Intermediate point
+    [413, 2.7], // Intermediate point
+    [414, 2.8], // Intermediate point
+    [415, 2.9], // Intermediate point
+    [416, 3.0], // Intermediate point
+    [417, 3.1], // Intermediate point
+    [418, 3.2], // Intermediate point
+    [419, 3.3], // Intermediate point
+    [420, 3], // Intermediate point
+    [421, 3.1], // Intermediate point
+    [422, 3.2], // Intermediate point
+    [423, 3.3], // Intermediate point
+    [424, 3.4], // Intermediate point
+    [425, 3.5], // Intermediate point
+    [426, 3.6], // Intermediate point
+    [427, 3.7], // Intermediate point
+    [428, 3.8], // Intermediate point
+    [429, 3.9], // Intermediate point
+    [430, 3.9], // Intermediate point
+    [431, 4.0], // Intermediate point
+    [432, 4.1], // Intermediate point
+    [433, 4.2], // Intermediate point
+    [434, 4.3], // Intermediate point
+    [435, 4.4], // Intermediate point
+    [436, 4.5], // Intermediate point
+    [437, 4.6], // Intermediate point
+    [438, 4.7], // Intermediate point
+    [439, 4.8], // Intermediate point
+    [440, 4.9], // Intermediate point
+    [441, 5.0], // Intermediate point
+    [442, 5.1], // Intermediate point
+    [443, 5.2], // Intermediate point
+    [444, 5.3], // Intermediate point
+    [445, 5.4], // Intermediate point
+    [446, 5.5], // Intermediate point
+    [447, 5.6], // Intermediate point
+    [448, 5.7], // Intermediate point
+    [449, 5.8], // Intermediate point
+    [450, 5.9], // Intermediate point
+    [451, 6.0], // Intermediate point
+    [452, 6.1], // Intermediate point
+    [453, 6.2], // Intermediate point
+    [454, 6.3], // Intermediate point
+    [455, 6.4], // Intermediate point
+    [456, 6.5], // Intermediate point
+    [457, 6.6], // Intermediate point
+    [458, 6.7], // Intermediate point
+    [459, 6.8], // Intermediate point
+    [460, 6.9], // Intermediate point
+    [461, 7.0], // Intermediate point
+    [462, 7.1], // Intermediate point
+    [463, 7.2], // Intermediate point
+    [464, 7.3], // Intermediate point
+    [465, 7.4], // Intermediate point
+    [466, 7.5], // Intermediate point
+    [467, 7.6], // Intermediate point
+    [468, 7.7], // Intermediate point
+    [469, 7.8], // Intermediate point
+    [470, 7.7], // Intermediate point
+    [471, 7.8], // Intermediate point
+    [472, 7.9], // Intermediate point
+    [473, 8.0], // Intermediate point
+    [474, 8.1], // Intermediate point
+    [475, 8.2], // Intermediate point
+    [476, 8.3], // Intermediate point
+    [477, 8.4], // Intermediate point
+    [478, 8.5], // Intermediate point
+    [479, 8.6], // Intermediate point
+    [480, 8.6], // Intermediate point
+    [481, 8.7], // Intermediate point
+    [482, 8.8], // Intermediate point
+    [483, 8.9], // Intermediate point
+    [484, 9.0], // Intermediate point
+    [485, 9.1], // Intermediate point
+    [486, 9.2], // Intermediate point
+    [487, 9.3], // Intermediate point
+    [488, 9.4], // Intermediate point
+    [489, 9.5], // Intermediate point
+    [490, 9.5], // Intermediate point
+    [491, 9.6], // Intermediate point
+    [492, 9.7], // Intermediate point
+    [493, 9.8], // Intermediate point
+    [494, 9.9], // Intermediate point
+    [495, 10.0], // Intermediate point
+    [496, 10.1], // Intermediate point
+    [497, 10.2], // Intermediate point
+    [498, 10.3], // Intermediate point
+    [499, 10.4], // Intermediate point
+    [500, 10.4], // Intermediate point
+    [501, 10.5], // Intermediate point
+    [502, 10.6], // Intermediate point
+    [503, 10.7], // Intermediate point
+    [504, 10.8], // Intermediate point
+    [505, 10.9], // Intermediate point
+    [506, 11.0], // Intermediate point
+    [507, 11.1], // Intermediate point
+    [508, 11.2], // Intermediate point
+    [509, 11.3], // Intermediate point
+    [510, 11.4], // Intermediate point
+    [511, 11.5], // Intermediate point
+    [512, 11.6], // Intermediate point
+    [513, 11.7], // Intermediate point
+    [514, 11.8], // Intermediate point
+    [515, 11.9], // Intermediate point
+    [516, 12.0], // Intermediate point
+    [517, 12.1], // Intermediate point
+    [518, 12.2], // Intermediate point
+    [519, 12.3], // Intermediate point
+    [520, 12.5], // Intermediate point
+    [521, 12.6], // Intermediate point
+    [522, 12.7], // Intermediate point
+    [523, 12.8], // Intermediate point
+    [524, 12.9], // Intermediate point
+    [525, 13.0], // Intermediate point
+    [526, 13.1], // Intermediate point
+    [527, 13.2], // Intermediate point
+    [528, 13.3], // Intermediate point
+    [529, 13.4], // Intermediate point
+    [530, 21], // Intermediate point
+    [531, 22], // Intermediate point
+    [532, 23], // Intermediate point
+    [533, 24], // Intermediate point
+    [534, 25], // Intermediate point
+    [535, 26], // Intermediate point
+    [536, 27], // Intermediate point
+    [537, 28], // Intermediate point
+    [538, 29], // Intermediate point
+    [539, 30], // Intermediate point
+    [540, 34], // Intermediate point
+    [541, 35], // Intermediate point
+    [542, 36], // Intermediate point
+    [543, 37], // Intermediate point
+    [544, 38], // Intermediate point
+    [545, 39], // Intermediate point
+    [546, 40], // Intermediate point
+    [547, 41], // Intermediate point
+    [548, 42], // Intermediate point
+    [549, 43], // Intermediate point
+    [550, 44], // Intermediate point
+    [551, 45], // Intermediate point
+    [552, 46], // Intermediate point
+    [553, 47], // Intermediate point
+    [554, 48], // Intermediate point
+    [555, 49], // Intermediate point
+    [556, 50], // Intermediate point
+    [557, 51], // Intermediate point
+    [558, 52], // Intermediate point
+    [559, 53], // Intermediate point
+    [560, 60], // Intermediate point
+    [561, 61], // Intermediate point
+    [562, 62], // Intermediate point
+    [563, 63], // Intermediate point
+    [564, 64], // Intermediate point
+    [565, 65], // Intermediate point
+    [566, 66], // Intermediate point
+    [567, 67], // Intermediate point
+    [568, 68], // Intermediate point
+    [569, 69], // Intermediate point
+    [570, 80], // Intermediate point
+    [571, 81], // Intermediate point
+    [572, 82], // Intermediate point
+    [573, 83], // Intermediate point
+    [574, 84], // Intermediate point
+    [575, 85], // Intermediate point
+    [576, 86], // Intermediate point
+    [577, 87], // Intermediate point
+    [578, 88], // Intermediate point
+    [579, 89], // Intermediate point
+    [580, 95], // Intermediate point
+    [581, 96], // Intermediate point
+    [582, 97], // Intermediate point
+    [583, 98], // Intermediate point
+    [584, 99], // Intermediate point
+    [585, 100], // Intermediate point
+    [586, 101], // Intermediate point
+    [587, 102], // Intermediate point
+    [588, 103], // Intermediate point
+    [589, 104], // Intermediate point
+    [590, 105], // Intermediate point
+    [591, 106], // Intermediate point
+    [592, 107], // Intermediate point
+    [593, 108], // Intermediate point
+    [594, 109], // Intermediate point
+    [595, 110], // Intermediate point
+    [596, 111], // Intermediate point
+    [597, 112], // Intermediate point
+    [598, 113], // Intermediate point
+    [599, 114], // Intermediate point
+    [600, 115], // Intermediate point
+    [601, 116], // Intermediate point
+    [602, 117], // Intermediate point
+    [603, 118], // Intermediate point
+    [604, 119], // Intermediate point
+    [605, 120], // Intermediate point
+    [606, 121], // Intermediate point
+    [607, 122], // Intermediate point
+    [608, 123], // Intermediate point
+    [609, 124], // Intermediate point
+    [610, 125], // Intermediate point
+    [611, 126], // Intermediate point
+    [612, 127], // Intermediate point
+    [613, 128], // Intermediate point
+    [614, 129], // Intermediate point
+    [615, 130], // Intermediate point
+    [616, 131], // Intermediate point
+    [617, 132], // Intermediate point
+    [618, 133], // Intermediate point
+    [619, 134], // Intermediate point
+    [620, 135], // Intermediate point
+    [621, 136], // Intermediate point
+    [622, 137], // Intermediate point
+    [623, 138], // Intermediate point
+    [624, 139], // Intermediate point
+    [625, 140], // Intermediate point
+    [626, 141], // Intermediate point
+    [627, 142], // Intermediate point
+    [628, 143], // Intermediate point
+    [629, 144], // Intermediate point
+    [630, 155], // Intermediate point
+    [631, 156], // Intermediate point
+    [632, 157], // Intermediate point
+    [633, 158], // Intermediate point
+    [634, 159], // Intermediate point
+    [635, 160], // Intermediate point
+    [636, 161], // Intermediate point
+    [637, 162], // Intermediate point
+    [638, 163], // Intermediate point
+    [639, 164], // Intermediate point
+    [640, 180], // Intermediate point
+    [641, 181], // Intermediate point
+    [642, 182], // Intermediate point
+    [643, 183], // Intermediate point
+    [644, 184], // Intermediate point
+    [645, 185], // Intermediate point
+    [646, 186], // Intermediate point
+    [647, 187], // Intermediate point
+    [647.15, 218] // Critical point (purple dot) - fixed value
+  ];
+  
+  // Handle edge cases
+  if (pressure <= 0.001) return 200;
+  if (pressure >= 218.0) return 647.096;
+  
+  // Find the two boundary points to interpolate between
+  for (let i = 0; i < boundaryPoints.length - 1; i++) {
+    const currentPoint = boundaryPoints[i];
+    const nextPoint = boundaryPoints[i + 1];
+    
+    if (pressure >= currentPoint[1] && pressure <= nextPoint[1]) {
+      // Linear interpolation between the two points
+      const t = (pressure - currentPoint[1]) / (nextPoint[1] - currentPoint[1]);
+      return currentPoint[0] + t * (nextPoint[0] - currentPoint[0]);
+    }
+  }
+  
+  // Fallback to nearest point if interpolation fails
+  let fallbackPoint = boundaryPoints[0];
+  let fallbackDistance = Math.abs(pressure - boundaryPoints[0][1]);
+  
+  for (let i = 1; i < boundaryPoints.length; i++) {
+    const distance = Math.abs(pressure - boundaryPoints[i][1]);
+    if (distance < fallbackDistance) {
+      fallbackDistance = distance;
+      fallbackPoint = boundaryPoints[i];
+    }
+  }
+  
+  return fallbackPoint[0];
 };
 
 export default function DiagramScreen() {
@@ -689,14 +1624,16 @@ export default function DiagramScreen() {
   };
 
   const [temperature, setTemperature] = useState(273.15); // Start at 0°C (273.15 K)
-  const [pressure, setPressure] = useState(P_TRIPLE); // Start at triple point (0.006117 atm)
-  const [pressureSliderValue, setPressureSliderValue] = useState(pressureToLogSlider(P_TRIPLE)); // Start at triple point pressure
+  const [pressure, setPressure] = useState(1); // Start at freezing point (1 atm)
+  const [pressureSliderValue, setPressureSliderValue] = useState(pressureToLogSlider(1)); // Start at freezing point pressure
   const [orientationLocked, setOrientationLocked] = useState(false);
   const [tempInput, setTempInput] = useState("0"); // Start at 0°C
-  const [pressureInput, setPressureInput] = useState(P_TRIPLE.toString());
-  const [tempWarning, setTempWarning] = useState(false);
+  const [pressureInput, setPressureInput] = useState("1");
   const [pressureWarning, setPressureWarning] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [isLinked, setIsLinked] = useState(false); // Add state for linking toggle
+  const [lastControlUsed, setLastControlUsed] = useState(null); // Track which control was last used: 'temperature' or 'pressure'
+  const [startingDirection, setStartingDirection] = useState(null); // Track which boundary to follow when starting from triple point
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
@@ -729,25 +1666,96 @@ export default function DiagramScreen() {
     };
   }, []);
 
-  // Responsive sidebar width
-  const sidebarWidth = Math.max(70, Math.min(120, width * 0.14));
+  // Use predefined responsive values for dynamic sizing
+  const currentSidebarWidth = sidebarWidth;
+  const currentDiagramWidth = Math.max(200, Math.min(width - currentSidebarWidth - wp('15'), diagramMaxWidth));
+  const currentDiagramHeight = Math.max(140, Math.min(height - hp('20'), diagramMaxHeight));
 
-  // Responsive diagram size - adjusted for better fit on smaller screens
-  const diagramWidth = Math.max(200, Math.min(width - sidebarWidth - 180, 400));
-  const diagramHeight = Math.max(140, Math.min(height - 160, 240));
-
-  // Responsive spacing and margins
-  const mainPadding = Math.max(2, Math.min(6, width * 0.01));
-  const centerPadding = Math.max(4, Math.min(8, width * 0.015));
-  const rightPanelPadding = Math.max(4, Math.min(8, width * 0.015));
-  const diagramMargin = Math.max(4, Math.min(8, height * 0.01));
+  // Use predefined responsive spacing values
+  const currentMainPadding = mainPadding;
+  const currentCenterPadding = centerPadding;
+  const currentRightPanelPadding = rightPanelPadding;
+  const currentDiagramMargin = diagramMargin;
 
   // --- Phase diagram axes ---
   const minT = 200, maxT = 700;
   const minP = 0.001, maxP = 300;
 
+  // Helper function for continuous temperature mapping
+  const getStretchedTemperature = (t) => {
+    // We want 100°C (373.15K) to appear at the 523.15K tick position
+    // This means we need to map the visual position to the actual temperature
+    if (t <= 373.15) {
+      // For temperatures up to 100°C, stretch them to fill the space up to 523.15K position
+      const stretchRatio = (523.15 - minT) / (373.15 - minT);
+      return minT + (t - minT) * stretchRatio;
+    } else if (t <= 647.096) {
+      // For temperatures between 100°C and critical point, create a smooth transition
+      const transitionStart = 373.15;
+      const transitionEnd = 647.096;
+      const transitionRatio = (t - transitionStart) / (transitionEnd - transitionStart);
+      
+      // The stretched end position (where 100°C appears)
+      const stretchedEnd = minT + (transitionStart - minT) * ((523.15 - minT) / (373.15 - minT));
+      const linearEnd = transitionEnd;
+      
+      return stretchedEnd + (linearEnd - stretchedEnd) * transitionRatio;
+    } else {
+      // For temperatures above critical point, use linear mapping
+      return t;
+    }
+  };
+
+  // Reverse mapping function to convert visual position back to actual temperature
+  const getActualTemperature = (stretchedT) => {
+    if (stretchedT <= 523.15) {
+      // Reverse the stretch mapping for temperatures up to 100°C
+      const stretchRatio = (523.15 - minT) / (373.15 - minT);
+      return minT + (stretchedT - minT) / stretchRatio;
+    } else if (stretchedT <= 647.096) {
+      // Reverse the transition mapping
+      const transitionStart = 373.15;
+      const transitionEnd = 647.096;
+      const stretchedEnd = minT + (transitionStart - minT) * ((523.15 - minT) / (373.15 - minT));
+      const linearEnd = transitionEnd;
+      
+      const transitionRatio = (stretchedT - stretchedEnd) / (linearEnd - stretchedEnd);
+      return transitionStart + (transitionEnd - transitionStart) * transitionRatio;
+    } else {
+      // For temperatures above critical point, use linear mapping
+      return stretchedT;
+    }
+  };
+
+  // Add snapping function for important temperature points
+  const snapToImportantTemperatures = (stretchedValue) => {
+    const actualTemp = getActualTemperature(stretchedValue);
+    
+    // Define important temperature points with tolerance
+    const importantPoints = [
+      { temp: 273.15, tolerance: 2, name: "Freezing Point" },    // 0°C
+      { temp: 373.15, tolerance: 2, name: "Boiling Point" },     // 100°C
+      { temp: 647.096, tolerance: 2, name: "Critical Point" },   // 374°C
+    ];
+    
+    // Check if we're close to any important point
+    for (const point of importantPoints) {
+      if (Math.abs(actualTemp - point.temp) <= point.tolerance) {
+        console.log(`Snapping to ${point.name}: ${Math.round(kelvinToCelsius(point.temp))}°C`);
+        return getStretchedTemperature(point.temp);
+      }
+    }
+    
+    return stretchedValue;
+  };
+
   // Map T and P to SVG coordinates
-  const mapT = t => 60 + ((t - minT) / (maxT - minT)) * (diagramWidth - 120);
+  // Modified to stretch 100°C (373.15K) to the 523.15K tick position with smooth transition
+  const mapT = t => {
+    const stretchedT = getStretchedTemperature(t);
+    return 60 + ((stretchedT - minT) / (maxT - minT)) * (currentDiagramWidth - 120);
+  };
+  
   const mapP = (pressure) => {
     // Define fixed pressure values for tick marks
     const pressures = [0.001, 0.01, 0.1, 1, 10, 100, 200, 300];
@@ -755,15 +1763,15 @@ export default function DiagramScreen() {
     // Find the appropriate segment for interpolation
     for (let i = 0; i < pressures.length - 1; i++) {
       if (pressure >= pressures[i] && pressure <= pressures[i + 1]) {
-        const segmentHeight = (diagramHeight - 80) / 7; // 7 segments for 8 points, accounting for margins
-        const baseY = diagramHeight - 40 - (i * segmentHeight); // 40px margin at top and bottom
+        const segmentHeight = (currentDiagramHeight - 80) / 7; // 7 segments for 8 points, accounting for margins
+        const baseY = currentDiagramHeight - 40 - (i * segmentHeight); // 40px margin at top and bottom
         const ratio = (pressure - pressures[i]) / (pressures[i + 1] - pressures[i]);
         return baseY - (segmentHeight * ratio);
       }
     }
     
     // Handle values outside the range
-    if (pressure <= pressures[0]) return diagramHeight - 40; // Bottom margin
+    if (pressure <= pressures[0]) return currentDiagramHeight - 40; // Bottom margin
     if (pressure >= pressures[pressures.length - 1]) return 40; // Top margin
     return 40;
   };
@@ -776,34 +1784,114 @@ export default function DiagramScreen() {
   // Use corrected phase logic
   const phase = getPhase(temperature, pressure);
   
+  // Enhanced debug logging for phase detection
+  const vaporP = accurateVaporPressure(temperature);
+  const fusionP = accurateFusionCurve(temperature);
+  const sublimationP = sublimationPressure(temperature);
+  
+  // Debug log for phase transitions
+  if (Math.abs(temperature - 273.15) < 0.1 && Math.abs(pressure - 1) < 0.1) {
+    console.log(`Freezing point: T=${temperature}K, P=${pressure}atm, Phase=${phase}`);
+    console.log(`  VaporP=${vaporP}, FusionP=${fusionP}, SublimationP=${sublimationP}`);
+  }
+  
+  if (Math.abs(temperature - 373.15) < 0.1 && Math.abs(pressure - 1) < 0.1) {
+    console.log(`Boiling point: T=${temperature}K, P=${pressure}atm, Phase=${phase}`);
+    console.log(`  VaporP=${vaporP}, FusionP=${fusionP}, SublimationP=${sublimationP}`);
+  }
+  
+  if (Math.abs(temperature - 647.096) < 0.1 && Math.abs(pressure - 218.0) < 0.1) {
+    console.log(`Critical point: T=${temperature}K, P=${pressure}atm, Phase=${phase}`);
+    console.log(`  VaporP=${vaporP}, FusionP=${fusionP}, SublimationP=${sublimationP}`);
+  }
+  
+  // Debug log for phase changes (when moving between regions)
+  const prevPhase = useRef(phase);
+  if (prevPhase.current !== phase) {
+    console.log(`Phase change: ${prevPhase.current} → ${phase} at T=${Math.round(kelvinToCelsius(temperature))}°C, P=${pressure}atm`);
+    console.log(`  VaporP=${vaporP}, FusionP=${fusionP}, SublimationP=${sublimationP}`);
+    prevPhase.current = phase;
+  }
+
   // Debug log for specific coordinates
   if (Math.abs(temperature - 254.69) < 0.1 && Math.abs(pressure - 300) < 0.1) {
     console.log(`Current phase at ${Math.round(kelvinToCelsius(temperature))}°C, ${pressure}atm: ${phase}`);
   }
+  
+  // Debug log for freezing point
+  if (Math.abs(temperature - 273.15) < 0.1 && Math.abs(pressure - 1) < 0.1) {
+    console.log(`Freezing point at ${Math.round(kelvinToCelsius(temperature))}°C, ${pressure}atm: ${phase}`);
+  }
+
+  // Debug log for triple point
+  if (Math.abs(temperature - T_TRIPLE) < 0.01 && Math.abs(pressure - P_TRIPLE) < 0.001) {
+    console.log(`Triple point at ${Math.round(kelvinToCelsius(temperature))}°C, ${pressure}atm: ${phase}`);
+    console.log(`  Last control used: ${lastControlUsed}, Is linked: ${isLinked}, Starting direction: ${startingDirection}`);
+  }
+
+  // Debug log for starting direction behavior
+  if (startingDirection && isLinked) {
+    console.log(`Starting direction active: ${startingDirection}, T=${Math.round(kelvinToCelsius(temperature))}°C, P=${pressure}atm`);
+  }
+
+  // Debug log for 100°C to verify mapping
+  if (Math.abs(temperature - 373.15) < 0.1) {
+    console.log(`100°C mapping: temperature=${temperature}K, mapped position=${mapT(temperature)}, 523.15K position=${mapT(523.15)}`);
+  }
+
+  // Debug log for critical point to verify mapping
+  if (Math.abs(temperature - 647.096) < 0.1) {
+    console.log(`Critical point mapping: temperature=${temperature}K, mapped position=${mapT(temperature)}`);
+  }
+
+  // Debug log for slider values
+  console.log(`Slider debug: actual temp=${temperature}K (${Math.round(kelvinToCelsius(temperature))}°C), stretched=${getStretchedTemperature(temperature)}`);
 
   // Calculate thermometer color based on temperature
   const thermometerColor = interpolateColor(temperature, minT, maxT);
 
   // Optimize handlers with useCallback
   const handleTempChange = useCallback((text) => {
-    // Allow only numbers and one decimal point, max 5 characters
-    if (/^[0-9]*\.?[0-9]*$/.test(text) && text.length <= 5) {
-      setTempInput(text);
-      const num = parseFloat(text);
-      if (!isNaN(num)) {
-        // Convert Celsius to Kelvin for internal calculations
-        const kelvinTemp = celsiusToKelvin(num);
-        if (kelvinTemp >= minT && kelvinTemp <= maxT) {
-          setTemperature(kelvinTemp);
-          setTempWarning(false);
+    setIsTyping(true);
+    setLastControlUsed('temperature'); // Track that temperature control was used
+    
+    // Allow any text input - no validation constraints
+    setTempInput(text);
+    const num = parseFloat(text);
+    if (!isNaN(num)) {
+      // Convert Celsius to Kelvin for internal calculations
+      const kelvinTemp = celsiusToKelvin(num);
+      // Allow any temperature value without range restrictions
+      setTemperature(kelvinTemp);
+      
+      // If linked, automatically adjust pressure to stay on phase boundary
+      if (isLinked) {
+        // Check for starting point behavior first
+        const startingPointResult = handleStartingPointBehavior(kelvinTemp, 'temperature');
+        
+        if (startingPointResult) {
+          // Use starting point behavior
+          setTemperature(startingPointResult.newTemperature);
+          setPressure(startingPointResult.newPressure);
+          setPressureSliderValue(pressureToLogSlider(startingPointResult.newPressure));
         } else {
-          setTempWarning(true);
+          // Use normal boundary logic
+          let newPressure = getBoundaryPressure(kelvinTemp, 'temperature');
+          // Clamp pressure to valid range
+          newPressure = Math.max(minP, Math.min(maxP, newPressure));
+          setPressure(newPressure);
+          setPressureSliderValue(pressureToLogSlider(newPressure));
         }
       }
     }
-  }, [minT, maxT]);
+    // Reset typing state after a short delay
+    setTimeout(() => setIsTyping(false), 100);
+  }, [isLinked, minP, maxP, pressure, lastControlUsed, temperature]);
 
   const handlePressureChange = useCallback((text) => {
+    setIsTyping(true);
+    setLastControlUsed('pressure');
+    
     // Allow only numbers and one decimal point, max 7 characters
     if (/^[0-9]*\.?[0-9]*$/.test(text) && text.length <= 7) {
       setPressureInput(text);
@@ -813,24 +1901,60 @@ export default function DiagramScreen() {
           setPressure(num);
           setPressureSliderValue(pressureToLogSlider(num));
           setPressureWarning(false);
+          
+          // If linked, automatically adjust temperature to stay on phase boundary
+          if (isLinked) {
+            // Check for starting point behavior first
+            const startingPointResult = handleStartingPointBehavior(num, 'pressure');
+            
+            if (startingPointResult) {
+              // Use starting point behavior
+              console.log(`Pressure input: Using starting point behavior - T=${startingPointResult.newTemperature}K, P=${startingPointResult.newPressure}atm`);
+              setTemperature(startingPointResult.newTemperature);
+              setPressure(startingPointResult.newPressure);
+              setPressureSliderValue(pressureToLogSlider(startingPointResult.newPressure));
+            } else {
+              // Use boundary logic based on starting direction
+              if (startingDirection === 'pressure') {
+                // Follow fusion curve (nearly vertical)
+                const boundaryTemperature = getFusionCurveTemperature(num);
+                console.log(`Pressure input: Following fusion curve - P=${num}atm, T=${boundaryTemperature}K`);
+                setTemperature(boundaryTemperature);
+              } else {
+                // Follow vaporization curve (default)
+                const newActualTemp = getVisualCurveTemperature(num);
+                setTemperature(newActualTemp);
+              }
+            }
+          }
         } else {
           setPressureWarning(true);
         }
       }
     }
-  }, [minP, maxP]);
+    // Reset typing state after a short delay
+    setTimeout(() => setIsTyping(false), 100);
+  }, [isLinked, minP, maxP, temperature, pressure, startingDirection]);
 
-  // Update input values when sliders change
-  useEffect(() => {
-    setTempInput(Math.round(kelvinToCelsius(temperature)).toString());
-    setTempWarning(false);
-  }, [temperature]);
+  // Update input values when sliders change (but not when typing)
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Removed redundant useEffect that was causing conflicts with link button handler
+  // The triple point snapping is now handled only in the link button onPress
 
   useEffect(() => {
-    setPressureInput(pressure.toString());
-    setPressureSliderValue(pressureToLogSlider(pressure));
-    setPressureWarning(false);
-  }, [pressure]);
+    if (!isTyping) {
+      setTempInput(Math.round(kelvinToCelsius(temperature)).toString());
+    }
+  }, [temperature, isTyping]);
+
+  useEffect(() => {
+    if (!isTyping) {
+      setPressureInput(pressure.toString());
+      setPressureSliderValue(pressureToLogSlider(pressure));
+      setPressureWarning(false);
+    }
+  }, [pressure, isTyping]);
 
   // Wait until orientation is locked AND the dimensions reflect landscape mode.
   // This prevents rendering with stale portrait dimensions.
@@ -839,10 +1963,239 @@ export default function DiagramScreen() {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primaryAccent} />
-        <Text style={[styles.loadingText, { color: theme.titleText }]}>Adjusting to landscape...</Text>
+        <Text style={[styles.loadingText, { 
+          color: theme.titleText,
+          fontSize: fontSubtitle,
+          marginTop: hp('1.5'),
+        }]}>Adjusting to landscape...</Text>
       </View>
     );
   }
+
+  const boilingData = [
+    [273.16, 0.006117],
+    [300, 0.03],
+    [323.15, 0.1],
+    [350, 0.4],
+    [373.15, 1],        // Boiling point
+    [400, 2.4],
+    [450, 9.4],
+    [500, 27],
+    [550, 63],
+    [600, 126],
+    [647.096, 218.0]    // Critical point
+  ];
+  
+  const boilingPath = boilingData.map(([T, P], i) => {
+    const x = mapT(T).toFixed(2);
+    const y = mapP(P).toFixed(2);
+    return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+  }).join(' ');
+
+  // Helper functions for triple point logic
+  const getFusionCurvePressure = (temperature) => {
+    // Use the fusion curve data points for pressure calculation
+    const fusionData = [
+      { P: 0.006117, T: 273.16 }, // triple point (exact)
+      { P: 0.01, T: 273.15 },
+      { P: 0.1, T: 273.15 },
+      { P: 1, T: 273.15 },        // freezing point at 1 atm and 0°C (273.15 K) - FIXED
+      { P: 10, T: 273.14 },
+      { P: 50, T: 273.13 },
+      { P: 100, T: 273.12 },
+      { P: 130, T: 273.11 },
+      { P: 150, T: 273.10 },
+      { P: 200, T: 273.09 },
+      { P: 250, T: 273.08 },
+      { P: 300, T: 273.07 },      // Extended to 300 atm - nearly vertical
+    ];
+    
+    // Handle edge cases
+    if (temperature <= fusionData[fusionData.length - 1].T) {
+      return fusionData[fusionData.length - 1].P;
+    }
+    if (temperature >= fusionData[0].T) {
+      return fusionData[0].P;
+    }
+    
+    // Find the two boundary points to interpolate between
+    for (let i = 0; i < fusionData.length - 1; i++) {
+      const currentPoint = fusionData[i];
+      const nextPoint = fusionData[i + 1];
+      
+      if (temperature >= nextPoint.T && temperature <= currentPoint.T) {
+        // Linear interpolation between the two points
+        const t = (currentPoint.T - temperature) / (currentPoint.T - nextPoint.T);
+        return currentPoint.P * (1 - t) + nextPoint.P * t;
+      }
+    }
+    
+    return fusionData[0].P; // Default to triple point pressure
+  };
+
+  const getVaporizationCurvePressure = (temperature) => {
+    // Use the vaporization curve (same as getVisualCurvePressure)
+    return getVisualCurvePressure(temperature);
+  };
+
+  // Function to determine which boundary to follow at triple point
+  const getBoundaryPressure = (temperature, controlType) => {
+    // Check if we're at triple point (0.01°C = 273.16K)
+    const isAtTriplePoint = Math.abs(temperature - T_TRIPLE) < 0.01;
+    
+    if (isAtTriplePoint) {
+      // At triple point, follow different boundaries based on control type
+      if (controlType === 'temperature') {
+        // Follow vaporization curve (triple to boiling point)
+        return getVisualCurvePressure(temperature);
+      } else if (controlType === 'pressure') {
+        // Follow fusion curve (triple to freezing point)
+        return getFusionCurvePressure(temperature);
+      }
+    }
+    
+    // Default behavior: follow the vaporization curve
+    return getVisualCurvePressure(temperature);
+  };
+
+  const getFusionCurveTemperature = (pressure) => {
+    // Use the fusion curve data points for temperature calculation
+    // The fusion curve should be nearly vertical (temperature stays around 273K)
+    const fusionData = [
+      { P: 0.006117, T: 273.16 }, // triple point (exact)
+      { P: 0.01, T: 273.15 },
+      { P: 0.1, T: 273.15 },
+      { P: 1, T: 273.15 },        // freezing point at 1 atm and 0°C (273.15 K)
+      { P: 10, T: 273.14 },
+      { P: 50, T: 273.13 },
+      { P: 100, T: 273.12 },
+      { P: 130, T: 273.11 },
+      { P: 150, T: 273.10 },
+      { P: 200, T: 273.09 },
+      { P: 250, T: 273.08 },
+      { P: 300, T: 273.07 },      // Extended to 300 atm - nearly vertical
+    ];
+    
+    // Handle edge cases
+    if (pressure <= fusionData[0].P) {
+      console.log(`getFusionCurveTemperature: pressure ${pressure} <= ${fusionData[0].P}, returning ${fusionData[0].T}K`);
+      return fusionData[0].T;
+    }
+    if (pressure >= fusionData[fusionData.length - 1].P) {
+      console.log(`getFusionCurveTemperature: pressure ${pressure} >= ${fusionData[fusionData.length - 1].P}, returning ${fusionData[fusionData.length - 1].T}K`);
+      return fusionData[fusionData.length - 1].T;
+    }
+    
+    // Find the two boundary points to interpolate between
+    for (let i = 0; i < fusionData.length - 1; i++) {
+      const currentPoint = fusionData[i];
+      const nextPoint = fusionData[i + 1];
+      
+      if (pressure >= currentPoint.P && pressure <= nextPoint.P) {
+        // Linear interpolation between the two points
+        const t = (pressure - currentPoint.P) / (nextPoint.P - currentPoint.P);
+        const result = currentPoint.T * (1 - t) + nextPoint.T * t;
+        console.log(`getFusionCurveTemperature: interpolating between P=${currentPoint.P}atm(T=${currentPoint.T}K) and P=${nextPoint.P}atm(T=${nextPoint.T}K), result T=${result}K`);
+        return result;
+      }
+    }
+    
+    console.log(`getFusionCurveTemperature: no interpolation found, returning default ${fusionData[0].T}K`);
+    return fusionData[0].T; // Default to triple point temperature
+  };
+
+  // Helper: interpolate temperature along fusion curve from triple point to freezing point
+  const getTripleToFreezingTemp = (pressure) => {
+    // Triple point: (273.16 K, 0.006117 atm)
+    // Freezing point: (273.15 K, 1 atm)
+    const P1 = 0.006117, T1 = 273.16;
+    const P2 = 1, T2 = 273.15;
+    if (pressure <= P1) return T1;
+    if (pressure >= P2) return T2;
+    // Linear interpolation (since the segment is nearly vertical)
+    const t = (pressure - P1) / (P2 - P1);
+    return T1 + (T2 - T1) * t;
+  };
+
+  // Helper function to check if we're at starting point and determine boundary behavior
+  const handleStartingPointBehavior = (newValue, controlType) => {
+    // Check if we're currently at the starting point (triple point: 0.01°C, 0.006117 atm)
+    const isAtStartingPoint = Math.abs(temperature - T_TRIPLE) < 0.01 && Math.abs(pressure - P_TRIPLE) < 0.001;
+    
+    console.log(`handleStartingPointBehavior: newValue=${newValue}, controlType=${controlType}, T=${temperature}K, P=${pressure}atm`);
+    console.log(`  isAtStartingPoint=${isAtStartingPoint}, isLinked=${isLinked}, startingDirection=${startingDirection}`);
+    
+    // If we're at the starting point and linked, set the starting direction
+    if (isAtStartingPoint && isLinked) {
+      setStartingDirection(controlType);
+      console.log(`Starting point behavior: controlType=${controlType}, newValue=${newValue}, setting direction to ${controlType}`);
+      
+      // Immediately return the appropriate behavior based on control type
+      if (controlType === 'pressure') {
+        // User started with pressure control - follow fusion curve (NEARLY VERTICAL LINE)
+        const boundaryTemperature = getFusionCurveTemperature(newValue);
+        console.log(`TRIPLE POINT: Following fusion curve to P=${newValue}atm, T=${boundaryTemperature}K`);
+        return {
+          newTemperature: boundaryTemperature,
+          newPressure: newValue
+        };
+      } else if (controlType === 'temperature') {
+        // User started with temperature control - follow vaporization curve
+        const boundaryPressure = getVisualCurvePressure(newValue);
+        console.log(`TRIPLE POINT: Following vaporization curve to T=${newValue}K, P=${boundaryPressure}atm`);
+        return {
+          newTemperature: newValue,
+          newPressure: Math.max(minP, Math.min(maxP, boundaryPressure))
+        };
+      }
+    }
+    
+    // If user switches control types, reset the starting direction
+    if (startingDirection && startingDirection !== controlType) {
+      console.log(`Control type switched from ${startingDirection} to ${controlType}, resetting starting direction`);
+      setStartingDirection(null);
+      return null;
+    }
+    
+    // If we have a starting direction and we're linked, follow that direction
+    if (startingDirection && isLinked) {
+      console.log(`Following starting direction: ${startingDirection}, controlType=${controlType}, newValue=${newValue}`);
+      
+      if (startingDirection === 'temperature') {
+        // User started with temperature control - follow vaporization curve
+        const boundaryPressure = getVisualCurvePressure(newValue);
+        console.log(`Following vaporization curve to T=${newValue}K, P=${boundaryPressure}atm`);
+        return {
+          newTemperature: newValue,
+          newPressure: Math.max(minP, Math.min(maxP, boundaryPressure))
+        };
+      } else if (startingDirection === 'pressure') {
+        // User started with pressure control - follow fusion curve (NEARLY VERTICAL LINE)
+        // Clamp pressure to maximum value to prevent going beyond 300 atm
+        const clampedPressure = Math.min(newValue, maxP);
+        const boundaryTemperature = getFusionCurveTemperature(clampedPressure);
+        console.log(`Following fusion curve to P=${clampedPressure}atm, T=${boundaryTemperature}K`);
+        
+        // If we're at the maximum pressure, stay there and don't reset
+        if (clampedPressure >= maxP) {
+          console.log(`Reached maximum pressure (${maxP}atm), staying at fusion curve endpoint`);
+          return {
+            newTemperature: boundaryTemperature,
+            newPressure: maxP
+          };
+        }
+        
+        return {
+          newTemperature: boundaryTemperature,
+          newPressure: clampedPressure
+        };
+      }
+    }
+    
+    // Not at starting point or not linked, use normal boundary logic
+    console.log(`Returning null - not at starting point or not linked`);
+    return null;
+  };
 
   return (
     <View 
@@ -854,12 +2207,26 @@ export default function DiagramScreen() {
           backgroundColor: theme.buttonPrimary,
           borderColor: theme.primaryAccent,
           shadowColor: theme.shadowColor,
-          elevation: 5,
+          elevation: elevation,
+          top: backButtonTop,
+          right: backButtonRight,
+          padding: wp('2'),
+          paddingHorizontal: wp('3'),
+          borderRadius: borderRadius,
+          borderWidth: 2,
+          borderBottomWidth: 4,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: shadowRadius,
         }]}
         onPress={() => handlePress(() => navigation.goBack())}
       >
-        <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
-        <Icon name="arrow-right" size={20} color={theme.titleText} />
+        <Text style={[styles.backButtonText, { 
+          color: theme.titleText,
+          fontSize: fontBackButton,
+          marginRight: wp('1.5'),
+        }]}>Back</Text>
+        <Icon name="arrow-right" size={fontBackButton} color={theme.titleText} />
       </TouchableOpacity>
 
       {/* Sidebar */}
@@ -868,10 +2235,13 @@ export default function DiagramScreen() {
           styles.sidebar,
           isLandscape && styles.sidebarLandscape,
           { 
-            width: sidebarWidth,
+            width: currentSidebarWidth,
             backgroundColor: theme.cardBackground,
             borderRightColor: theme.borderColor,
             shadowColor: theme.shadowColor,
+            overflow: 'hidden',
+            justifyContent: 'flex-start',
+            paddingBottom: hp('2'),
           },
         ]}
       >
@@ -882,133 +2252,171 @@ export default function DiagramScreen() {
           width: logoSize,
           height: logoSize,
         }]} />
-        <View style={styles.thermometerContainer}>
-          <Svg height={thermometerHeight} width={thermometerWidth}>
-            {/* Main glass tube */}
-            <Rect 
-              x="15" 
-              y="25" 
-              width="8" 
-              height="100" 
-              rx="4" 
-              fill={theme.isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.4)'} 
-              stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'} 
-              strokeWidth="1"
-            />
-            
-            {/* Inner glass tube (transparent) */}
-            <Rect 
-              x="17" 
-              y="27" 
-              width="4" 
-              height="96" 
-              rx="2" 
-              fill={theme.isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)'} 
-              stroke="none"
-            />
-            
-            {/* Mercury/fluid column */}
-            <Rect
-              x="17"
-              y={125 - ((temperature - minT) / (maxT - minT)) * 96}
-              width="4"
-              height={((temperature - minT) / (maxT - minT)) * 96}
-              fill={thermometerColor}
-              rx="2"
-            />
-            
-            {/* Bulb at bottom */}
-            <Circle
-              cx="19"
-              cy="135"
-              r="12"
-              fill={thermometerColor}
-              stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
-              strokeWidth="1"
-            />
-            
-            {/* Bulb highlight */}
-            <Circle
-              cx="17"
-              cy="133"
-              r="4"
-              fill={theme.isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)'}
-              stroke="none"
-            />
-            
-            {/* Scale markings - major ticks */}
-            {[200, 300, 400, 500, 600, 700].map((temp, i) => {
-              const y = 125 - ((temp - minT) / (maxT - minT)) * 96;
+        <View style={[styles.thermometerContainer, {
+          marginTop: hp('2'), 
+          marginBottom: hp('1'), 
+          marginLeft: wp('3'),
+          alignItems: 'center',
+          justifyContent: 'center',
+        }]}>
+          <Svg height={thermometerHeight} width={thermometerWidth} style={{ marginLeft: wp('2') }}>
+            {/* Calculate responsive dimensions */}
+            {(() => {
+              const tubeWidth = Math.max(6, thermometerWidth * 0.12);
+              const tubeHeight = Math.max(80, thermometerHeight * 0.7);
+              const tubeX = Math.max(12, thermometerWidth * 0.2);
+              const tubeY = Math.max(20, thermometerHeight * 0.15);
+              const bulbRadius = Math.max(8, thermometerWidth * 0.15);
+              const bulbX = tubeX + tubeWidth / 2;
+              const bulbY = tubeY + tubeHeight + bulbRadius;
+              const scaleX = tubeX + tubeWidth + 8;
+              const displayWidth = Math.max(20, thermometerWidth * 0.4);
+              const displayHeight = Math.max(12, thermometerHeight * 0.1);
+              const displayX = Math.max(8, thermometerWidth * 0.15);
+              const displayY = Math.max(4, thermometerHeight * 0.05);
+              
               return (
-                <React.Fragment key={`major-${temp}`}>
+                <>
+                  {/* Main glass tube */}
+                  <Rect 
+                    x={tubeX} 
+                    y={tubeY} 
+                    width={tubeWidth} 
+                    height={tubeHeight} 
+                    rx={tubeWidth / 2} 
+                    fill={theme.isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.4)'} 
+                    stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'} 
+                    strokeWidth="1"
+                  />
+                  
+                  {/* Inner glass tube (transparent) */}
+                  <Rect 
+                    x={tubeX + 2} 
+                    y={tubeY + 2} 
+                    width={tubeWidth - 4} 
+                    height={tubeHeight - 4} 
+                    rx={(tubeWidth - 4) / 2} 
+                    fill={theme.isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)'} 
+                    stroke="none"
+                  />
+                  
+                  {/* Mercury/fluid column */}
                   <Rect
-                    x="25"
-                    y={y - 1}
-                    width="6"
-                    height="2"
-                    fill={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
-                    rx="1"
+                    x={tubeX + 2}
+                    y={bulbY - bulbRadius - ((getStretchedTemperature(temperature) - minT) / (maxT - minT)) * (tubeHeight - 4)}
+                    width={tubeWidth - 4}
+                    height={((getStretchedTemperature(temperature) - minT) / (maxT - minT)) * (tubeHeight - 4)}
+                    fill={thermometerColor}
+                    rx={(tubeWidth - 4) / 2}
+                  />
+                  
+                  {/* Bulb at bottom */}
+                  <Circle
+                    cx={bulbX}
+                    cy={bulbY}
+                    r={bulbRadius}
+                    fill={thermometerColor}
+                    stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
+                    strokeWidth="1"
+                  />
+                  
+                  {/* Bulb highlight */}
+                  <Circle
+                    cx={bulbX - 2}
+                    cy={bulbY - 2}
+                    r={bulbRadius * 0.3}
+                    fill={theme.isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)'}
+                    stroke="none"
+                  />
+                  
+                  {/* Scale markings - major ticks */}
+                  {[273.15, 373.15, 646.15].map((temp, i) => {
+                    const stretchedT = getStretchedTemperature(temp);
+                    const y = bulbY - bulbRadius - ((stretchedT - minT) / (maxT - minT)) * (tubeHeight - 4);
+                    return (
+                      <React.Fragment key={`major-${temp}`}>
+                        <Rect
+                          x={scaleX}
+                          y={y - 1}
+                          width={6}
+                          height={2}
+                          fill={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
+                          rx="1"
+                        />
+                        <SvgText
+                          x={scaleX + 10}
+                          y={y + 4}
+                          fontSize={Math.max(8, fontSlider * 0.8)}
+                          fill={theme.subtitleText}
+                          fontWeight="bold"
+                        >
+                          {Math.round(kelvinToCelsius(temp))}
+                        </SvgText>
+                      </React.Fragment>
+                    );
+                  })}
+                  
+                  {/* Scale markings - minor ticks */}
+                  {[273.15, 373.15, 646.15].map((temp, i) => {
+                    const stretchedT = getStretchedTemperature(temp);
+                    const y = bulbY - bulbRadius - ((stretchedT - minT) / (maxT - minT)) * (tubeHeight - 4);
+                    return (
+                      <Rect
+                        key={`minor-${temp}`}
+                        x={scaleX + 2}
+                        y={y - 0.5}
+                        width={3}
+                        height={1}
+                        fill={theme.isDarkTheme ? '#4895EF' : '#64B5F6'}
+                        rx="0.5"
+                      />
+                    );
+                  })}
+                  
+                  {/* Temperature value display */}
+                  <Rect
+                    x={displayX}
+                    y={displayY}
+                    width={displayWidth}
+                    height={displayHeight}
+                    rx={3}
+                    fill={theme.isDarkTheme ? 'rgba(76, 201, 240, 0.2)' : 'rgba(255,255,255,0.95)'}
+                    stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
+                    strokeWidth="1"
                   />
                   <SvgText
-                    x="35"
-                    y={y + 4}
-                    fontSize="10"
-                    fill={theme.subtitleText}
+                    x={displayX + displayWidth / 2}
+                    y={displayY + displayHeight * 0.7}
+                    fontSize={Math.max(8, fontSlider * 0.8)}
+                    fill={thermometerColor}
                     fontWeight="bold"
+                    textAnchor="middle"
                   >
-                    {Math.round(kelvinToCelsius(temp))}
+                    {Math.round(kelvinToCelsius(temperature))}
                   </SvgText>
-                </React.Fragment>
+                  <SvgText
+                    x={displayX + displayWidth + 2}
+                    y={displayY + displayHeight * 0.7}
+                    fontSize={Math.max(8, fontSlider * 0.8)}
+                    fill={thermometerColor}
+                    fontWeight="bold"
+                    textAnchor="start"
+                  >
+                    °C
+                  </SvgText>
+                  
+                  {/* Glass reflection */}
+                  <Rect
+                    x={tubeX + 1}
+                    y={tubeY + 2}
+                    width={2}
+                    height={tubeHeight - 4}
+                    fill={theme.isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.3)'}
+                    rx="1"
+                  />
+                </>
               );
-            })}
-            
-            {/* Scale markings - minor ticks */}
-            {[250, 350, 450, 550, 650].map((temp, i) => {
-              const y = 125 - ((temp - minT) / (maxT - minT)) * 96;
-              return (
-                <Rect
-                  key={`minor-${temp}`}
-                  x="27"
-                  y={y - 0.5}
-                  width="3"
-                  height="1"
-                  fill={theme.isDarkTheme ? '#4895EF' : '#64B5F6'}
-                  rx="0.5"
-                />
-              );
-            })}
-            
-            {/* Temperature value display */}
-            <Rect
-              x="10"
-              y="5"
-              width="24"
-              height="16"
-              rx="3"
-              fill={theme.isDarkTheme ? 'rgba(76, 201, 240, 0.2)' : 'rgba(255,255,255,0.95)'}
-              stroke={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
-              strokeWidth="1"
-            />
-            <SvgText
-              x="22"
-              y="16"
-              fontSize="11"
-              fill={thermometerColor}
-              fontWeight="bold"
-              textAnchor="middle"
-            >
-              {Math.round(kelvinToCelsius(temperature))}°C
-            </SvgText>
-            
-            {/* Glass reflection */}
-            <Rect
-              x="16"
-              y="28"
-              width="2"
-              height="94"
-              fill={theme.isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.3)'}
-              rx="1"
-            />
+            })()}
           </Svg>
         </View>
         
@@ -1021,14 +2429,77 @@ export default function DiagramScreen() {
             width: helpButtonSize,
             height: helpButtonSize,
             borderRadius: helpButtonSize / 2,
+            marginTop: moleculeMargin,
+            marginBottom: moleculeMargin,
+            shadowOpacity: 0.09,
+            shadowRadius: shadowRadius,
+            borderWidth: 2,
+            elevation: elevation,
           }]}
           onPress={() => handlePress(() => navigation.navigate('Help'))}
         >
           <Text style={[styles.helpButtonText, { 
             color: theme.titleText,
-            fontSize: fontSlider,
+            fontSize: fontHelpButton,
           }]}>?</Text>
         </TouchableOpacity>
+        
+        {/* Link toggle button */}
+        <TouchableOpacity
+          style={[styles.linkButton, {
+            backgroundColor: isLinked ? theme.primaryAccent : theme.buttonSecondary,
+            borderColor: isLinked ? theme.primaryAccent : theme.borderColor,
+            shadowColor: theme.shadowColor,
+            width: linkButtonSize,
+            height: linkButtonSize,
+            borderRadius: linkButtonSize / 2,
+            marginTop: moleculeMargin,
+            marginBottom: moleculeMargin,
+            shadowOpacity: 0.09,
+            shadowRadius: shadowRadius,
+            borderWidth: 2,
+            elevation: elevation,
+          }]}
+          onPress={() => handlePress(() => {
+            // Reset all state variables to their initial values
+            setTemperature(273.15); // Reset to 0°C (273.15 K)
+            setPressure(1); // Reset to freezing point (1 atm)
+            setPressureSliderValue(pressureToLogSlider(1)); // Reset pressure slider
+            setTempInput("0"); // Reset temperature input
+            setPressureInput("1"); // Reset pressure input
+            setPressureWarning(false); // Reset pressure warning
+            setLastControlUsed(null); // Reset last control used
+            setStartingDirection(null); // Reset starting direction
+            
+            // Toggle linking state
+            setIsLinked(!isLinked);
+            
+            // If turning on linking, snap to triple point
+            if (!isLinked) {
+              const triplePointTemp = 273.16; // 0.01°C in Kelvin
+              const triplePointPressure = 0.006117; // Triple point pressure in atm
+              setTemperature(triplePointTemp);
+              setPressure(triplePointPressure);
+              setPressureSliderValue(pressureToLogSlider(triplePointPressure));
+              setTempInput("0.01"); // Update input to show triple point
+              setPressureInput("0.006"); // Update input to show triple point
+            }
+          })}
+        >
+          <Icon 
+            name={isLinked ? "link-variant" : "link-variant-off"} 
+            size={fontSlider} 
+            color={isLinked ? theme.titleText : theme.subtitleText} 
+          />
+        </TouchableOpacity>
+        
+        {/* Link label */}
+        <Text style={[styles.linkLabel, { 
+          color: theme.subtitleText,
+          fontSize: fontLinkLabel,
+        }]}>
+          {isLinked ? "LINKED" : "LINK"}
+        </Text>
       </View>
 
       {/* Main Content */}
@@ -1043,30 +2514,79 @@ export default function DiagramScreen() {
         <View style={[styles.mainDisplayArea, { 
           flex: 1,
           flexDirection: "row",
-          alignItems: "center",
+          alignItems: "flex-start",
           justifyContent: "space-between",
-          paddingHorizontal: 4,
+          paddingHorizontal: mainPadding,
         }]}>
           {/* Left: Vertical Pressure Slider */}
           <View style={[styles.pressureControlContainer, { 
-            height: diagramHeight,
+            height: currentDiagramHeight + currentDiagramMargin,
             paddingHorizontal: mainPadding,
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.borderColor,
+            shadowColor: theme.shadowColor,
+            borderWidth: 2,
+            borderRadius: borderRadius,
+            shadowOpacity: 0.1,
+            shadowRadius: shadowRadius,
+            elevation: 6,
+            paddingVertical: contentPadding,
+            justifyContent: "space-between",
           }]}>
+            <Text style={[styles.sliderLabelVertical, { 
+              color: theme.titleText,
+              fontSize: fontSlider,
+            }]}>PRESSURE</Text>
             <View
               style={[
                 styles.verticalSliderWrapper,
-                { height: diagramHeight * 0.7 },
+                { height: currentDiagramHeight * 0.6 },
               ]}
             >
               <Slider
-                style={[styles.verticalSlider, { width: diagramHeight * 0.7 }]}
+                style={[styles.verticalSlider, { width: currentDiagramHeight * 0.6 }]}
                 minimumValue={0}
                 maximumValue={1}
                 value={pressureSliderValue}
                 onValueChange={(value) => {
                   setPressureSliderValue(value);
+                  setLastControlUsed('pressure'); // Track that pressure control was used
                   const newPressure = logSliderToPressure(value);
                   setPressure(newPressure);
+                  
+                  // If linked, automatically adjust temperature to stay on phase boundary
+                  if (isLinked) {
+                    // Check for starting point behavior first
+                    const startingPointResult = handleStartingPointBehavior(newPressure, 'pressure');
+                    
+                    if (startingPointResult) {
+                      // Use starting point behavior
+                      console.log(`Pressure slider: Using starting point behavior - T=${startingPointResult.newTemperature}K, P=${startingPointResult.newPressure}atm`);
+                      setTemperature(startingPointResult.newTemperature);
+                      setPressure(startingPointResult.newPressure);
+                      
+                      // If we're at maximum pressure, ensure slider stays at 1.0
+                      if (startingPointResult.newPressure >= maxP) {
+                        console.log(`At maximum pressure, setting slider to 1.0`);
+                        setPressureSliderValue(1.0);
+                      } else {
+                        setPressureSliderValue(pressureToLogSlider(startingPointResult.newPressure));
+                      }
+                    } else {
+                      // Use boundary logic based on starting direction
+                      if (startingDirection === 'pressure') {
+                        // Follow fusion curve (nearly vertical)
+                        const boundaryTemperature = getFusionCurveTemperature(newPressure);
+                        console.log(`Pressure slider: Following fusion curve - P=${newPressure}atm, T=${boundaryTemperature}K`);
+                        setTemperature(boundaryTemperature);
+                      } else {
+                        // Follow vaporization curve (default)
+                        const newActualTemp = getVisualCurveTemperature(newPressure);
+                        console.log(`Pressure slider: Following vaporization curve - P=${newPressure}atm, T=${newActualTemp}K`);
+                        setTemperature(newActualTemp);
+                      }
+                    }
+                  }
                 }}
                 minimumTrackTintColor="#ffa500"
                 maximumTrackTintColor={theme.isDarkTheme ? theme.cardBackground : '#1976D2'}
@@ -1075,10 +2595,6 @@ export default function DiagramScreen() {
                 thumbStyle={{ width: 32, height: 32 }}
               />
             </View>
-            <Text style={[styles.sliderLabelVertical, { 
-              color: theme.titleText,
-              fontSize: fontSlider,
-            }]}>PRESSURE</Text>
             <View style={[styles.inputContainer, {
               width: inputWidth,
               height: inputHeight,
@@ -1108,7 +2624,10 @@ export default function DiagramScreen() {
               }]}> atm</Text>
             </View>
             {pressureWarning && (
-              <Text style={styles.warningText}>
+              <Text style={[styles.warningText, {
+                fontSize: fontWarning,
+                marginTop: inputMargin,
+              }]}>
                 Max: 300.000 atm
               </Text>
             )}
@@ -1120,9 +2639,8 @@ export default function DiagramScreen() {
               style={[
                 styles.diagramContainerNew,
                 {
-                  width: diagramWidth,
-                  height: diagramHeight + diagramMargin,
-                  marginBottom: diagramMargin,
+                  width: currentDiagramWidth,
+                  height: currentDiagramHeight + currentDiagramMargin,
                   marginTop: 0,
                   backgroundColor: theme.cardBackground,
                   borderColor: theme.borderColor,
@@ -1132,1307 +2650,225 @@ export default function DiagramScreen() {
               ]}
             >
               <Svg
-                height={diagramHeight}
-                width={diagramWidth}
+                height={currentDiagramHeight}
+                width={currentDiagramWidth}
                 style={[styles.diagramSvg, { marginTop: -40, marginLeft: 40 }]}
               >
-                {/* --- Phase regions (accurate for water) --- */}
-                {/* --- Properly fill the gas region up to the critical point using accurate vaporization curve --- */}
+                {/* Vertical axis line */}
                 <Path
-                  d={`
-                    M${mapT(273.15)},${mapP(0.00604)}
-                    L${mapT(274)},${mapP(0.006359)}
-                    L${mapT(275)},${mapP(0.006835)}
-                    L${mapT(276)},${mapP(0.007343)}
-                    L${mapT(277)},${mapP(0.007884)}
-                    L${mapT(278)},${mapP(0.00846)}
-                    L${mapT(279)},${mapP(0.009072)}
-                    L${mapT(280)},${mapP(0.009723)}
-                    L${mapT(281)},${mapP(0.010415)}
-                    L${mapT(282)},${mapP(0.01115)}
-                    L${mapT(283)},${mapP(0.01193)}
-                    L${mapT(284)},${mapP(0.012757)}
-                    L${mapT(285)},${mapP(0.013635)}
-                    L${mapT(286)},${mapP(0.014565)}
-                    L${mapT(287)},${mapP(0.01555)}
-                    L${mapT(288)},${mapP(0.016592)}
-                    L${mapT(289)},${mapP(0.017696)}
-                    L${mapT(290)},${mapP(0.018863)}
-                    L${mapT(291)},${mapP(0.020097)}
-                    L${mapT(292)},${mapP(0.021401)}
-                    L${mapT(293)},${mapP(0.022778)}
-                    L${mapT(294)},${mapP(0.024232)}
-                    L${mapT(295)},${mapP(0.025766)}
-                    L${mapT(296)},${mapP(0.027384)}
-                    L${mapT(297)},${mapP(0.029091)}
-                    L${mapT(298)},${mapP(0.030888)}
-                    L${mapT(299)},${mapP(0.032782)}
-                    L${mapT(300)},${mapP(0.034776)}
-                    L${mapT(301)},${mapP(0.036875)}
-                    L${mapT(302)},${mapP(0.039083)}
-                    L${mapT(303)},${mapP(0.041405)}
-                    L${mapT(304)},${mapP(0.043846)}
-                    L${mapT(305)},${mapP(0.04641)}
-                    L${mapT(306)},${mapP(0.049103)}
-                    L${mapT(307)},${mapP(0.051931)}
-                    L${mapT(308)},${mapP(0.054899)}
-                    L${mapT(309)},${mapP(0.058013)}
-                    L${mapT(310)},${mapP(0.061278)}
-                    L${mapT(311)},${mapP(0.0647)}
-                    L${mapT(312)},${mapP(0.068287)}
-                    L${mapT(313)},${mapP(0.072044)}
-                    L${mapT(314)},${mapP(0.075977)}
-                    L${mapT(315)},${mapP(0.080095)}
-                    L${mapT(316)},${mapP(0.084404)}
-                    L${mapT(317)},${mapP(0.088911)}
-                    L${mapT(318)},${mapP(0.093623)}
-                    L${mapT(319)},${mapP(0.098549)}
-                    L${mapT(320)},${mapP(0.103696)}
-                    L${mapT(321)},${mapP(0.109072)}
-                    L${mapT(322)},${mapP(0.114686)}
-                    L${mapT(323)},${mapP(0.120546)}
-                    L${mapT(324)},${mapP(0.126662)}
-                    L${mapT(325)},${mapP(0.133041)}
-                    L${mapT(326)},${mapP(0.139694)}
-                    L${mapT(327)},${mapP(0.146629)}
-                    L${mapT(328)},${mapP(0.153857)}
-                    L${mapT(329)},${mapP(0.161388)}
-                    L${mapT(330)},${mapP(0.169231)}
-                    L${mapT(331)},${mapP(0.177398)}
-                    L${mapT(332)},${mapP(0.185899)}
-                    L${mapT(333)},${mapP(0.194746)}
-                    L${mapT(334)},${mapP(0.203949)}
-                    L${mapT(335)},${mapP(0.21352)}
-                    L${mapT(336)},${mapP(0.22347)}
-                    L${mapT(337)},${mapP(0.233813)}
-                    L${mapT(338)},${mapP(0.244561)}
-                    L${mapT(339)},${mapP(0.255726)}
-                    L${mapT(340)},${mapP(0.26732)}
-                    L${mapT(341)},${mapP(0.279359)}
-                    L${mapT(342)},${mapP(0.291854)}
-                    L${mapT(343)},${mapP(0.304821)}
-                    L${mapT(344)},${mapP(0.318272)}
-                    L${mapT(345)},${mapP(0.332223)}
-                    L${mapT(346)},${mapP(0.346688)}
-                    L${mapT(347)},${mapP(0.361683)}
-                    L${mapT(348)},${mapP(0.377223)}
-                    L${mapT(349)},${mapP(0.393324)}
-                    L${mapT(350)},${mapP(0.410001)}
-                    L${mapT(351)},${mapP(0.427271)}
-                    L${mapT(352)},${mapP(0.445152)}
-                    L${mapT(353)},${mapP(0.463659)}
-                    L${mapT(354)},${mapP(0.48281)}
-                    L${mapT(355)},${mapP(0.502623)}
-                    L${mapT(356)},${mapP(0.523117)}
-                    L${mapT(357)},${mapP(0.544308)}
-                    L${mapT(358)},${mapP(0.566217)}
-                    L${mapT(359)},${mapP(0.588862)}
-                    L${mapT(360)},${mapP(0.612263)}
-                    L${mapT(361)},${mapP(0.63644)}
-                    L${mapT(362)},${mapP(0.661412)}
-                    L${mapT(363)},${mapP(0.6872)}
-                    L${mapT(364)},${mapP(0.713825)}
-                    L${mapT(365)},${mapP(0.741309)}
-                    L${mapT(366)},${mapP(0.769673)}
-                    L${mapT(367)},${mapP(0.798938)}
-                    L${mapT(368)},${mapP(0.829128)}
-                    L${mapT(369)},${mapP(0.860265)}
-                    L${mapT(370)},${mapP(0.892371)}
-                    L${mapT(371)},${mapP(0.925472)}
-                    L${mapT(372)},${mapP(0.959589)}
-                    L${mapT(373)},${mapP(0.994748)}
-                    L${mapT(374)},${mapP(1.030974)}
-                    L${mapT(375)},${mapP(1.068291)}
-                    L${mapT(376)},${mapP(1.106724)}
-                    L${mapT(377)},${mapP(1.1463)}
-                    L${mapT(378)},${mapP(1.187044)}
-                    L${mapT(379)},${mapP(1.228984)}
-                    L${mapT(380)},${mapP(1.272145)}
-                    L${mapT(381)},${mapP(1.316557)}
-                    L${mapT(382)},${mapP(1.362245)}
-                    L${mapT(383)},${mapP(1.409239)}
-                    L${mapT(384)},${mapP(1.457567)}
-                    L${mapT(385)},${mapP(1.507257)}
-                    L${mapT(386)},${mapP(1.55834)}
-                    L${mapT(387)},${mapP(1.610845)}
-                    L${mapT(388)},${mapP(1.664803)}
-                    L${mapT(389)},${mapP(1.720243)}
-                    L${mapT(390)},${mapP(1.777196)}
-                    L${mapT(391)},${mapP(1.835695)}
-                    L${mapT(392)},${mapP(1.895771)}
-                    L${mapT(393)},${mapP(1.957456)}
-                    L${mapT(394)},${mapP(2.020783)}
-                    L${mapT(395)},${mapP(2.085785)}
-                    L${mapT(396)},${mapP(2.152495)}
-                    L${mapT(397)},${mapP(2.220947)}
-                    L${mapT(398)},${mapP(2.291176)}
-                    L${mapT(399)},${mapP(2.363216)}
-                    L${mapT(400)},${mapP(2.437102)}
-                    L${mapT(401)},${mapP(2.512869)}
-                    L${mapT(402)},${mapP(2.590555)}
-                    L${mapT(403)},${mapP(2.670194)}
-                    L${mapT(404)},${mapP(2.751824)}
-                    L${mapT(405)},${mapP(2.835482)}
-                    L${mapT(406)},${mapP(2.921206)}
-                    L${mapT(407)},${mapP(3.009033)}
-                    L${mapT(408)},${mapP(3.099003)}
-                    L${mapT(409)},${mapP(3.191153)}
-                    L${mapT(410)},${mapP(3.285523)}
-                    L${mapT(411)},${mapP(3.382153)}
-                    L${mapT(412)},${mapP(3.481083)}
-                    L${mapT(413)},${mapP(3.582353)}
-                    L${mapT(414)},${mapP(3.686004)}
-                    L${mapT(415)},${mapP(3.792078)}
-                    L${mapT(416)},${mapP(3.900616)}
-                    L${mapT(417)},${mapP(4.01166)}
-                    L${mapT(418)},${mapP(4.125254)}
-                    L${mapT(419)},${mapP(4.241439)}
-                    L${mapT(420)},${mapP(4.36026)}
-                    L${mapT(421)},${mapP(4.48176)}
-                    L${mapT(422)},${mapP(4.605983)}
-                    L${mapT(423)},${mapP(4.732974)}
-                    L${mapT(424)},${mapP(4.862778)}
-                    L${mapT(425)},${mapP(4.99544)}
-                    L${mapT(426)},${mapP(5.131006)}
-                    L${mapT(427)},${mapP(5.269522)}
-                    L${mapT(428)},${mapP(5.411036)}
-                    L${mapT(429)},${mapP(5.555593)}
-                    L${mapT(430)},${mapP(5.703241)}
-                    L${mapT(431)},${mapP(5.854029)}
-                    L${mapT(432)},${mapP(6.008004)}
-                    L${mapT(433)},${mapP(6.165215)}
-                    L${mapT(434)},${mapP(6.32571)}
-                    L${mapT(435)},${mapP(6.48954)}
-                    L${mapT(436)},${mapP(6.656753)}
-                    L${mapT(437)},${mapP(6.827401)}
-                    L${mapT(438)},${mapP(7.001533)}
-                    L${mapT(439)},${mapP(7.179201)}
-                    L${mapT(440)},${mapP(7.360455)}
-                    L${mapT(441)},${mapP(7.545348)}
-                    L${mapT(442)},${mapP(7.733932)}
-                    L${mapT(443)},${mapP(7.926258)}
-                    L${mapT(444)},${mapP(8.12238)}
-                    L${mapT(445)},${mapP(8.322351)}
-                    L${mapT(446)},${mapP(8.526224)}
-                    L${mapT(447)},${mapP(8.734053)}
-                    L${mapT(448)},${mapP(8.945893)}
-                    L${mapT(449)},${mapP(9.161797)}
-                    L${mapT(450)},${mapP(9.381822)}
-                    L${mapT(451)},${mapP(9.606022)}
-                    L${mapT(452)},${mapP(9.834454)}
-                    L${mapT(453)},${mapP(10.067172)}
-                    L${mapT(454)},${mapP(10.304234)}
-                    L${mapT(455)},${mapP(10.545695)}
-                    L${mapT(456)},${mapP(10.791614)}
-                    L${mapT(457)},${mapP(11.042048)}
-                    L${mapT(458)},${mapP(11.297054)}
-                    L${mapT(459)},${mapP(11.556691)}
-                    L${mapT(460)},${mapP(11.821016)}
-                    L${mapT(461)},${mapP(12.090089)}
-                    L${mapT(462)},${mapP(12.363968)}
-                    L${mapT(463)},${mapP(12.642714)}
-                    L${mapT(464)},${mapP(12.926385)}
-                    L${mapT(465)},${mapP(13.215042)}
-                    L${mapT(466)},${mapP(13.508745)}
-                    L${mapT(467)},${mapP(13.807555)}
-                    L${mapT(468)},${mapP(14.111533)}
-                    L${mapT(469)},${mapP(14.42074)}
-                    L${mapT(470)},${mapP(14.735237)}
-                    L${mapT(471)},${mapP(15.055087)}
-                    L${mapT(472)},${mapP(15.380351)}
-                    L${mapT(473)},${mapP(15.711093)}
-                    L${mapT(474)},${mapP(16.047374)}
-                    L${mapT(475)},${mapP(16.389258)}
-                    L${mapT(476)},${mapP(16.736809)}
-                    L${mapT(477)},${mapP(17.090089)}
-                    L${mapT(478)},${mapP(17.449163)}
-                    L${mapT(479)},${mapP(17.814095)}
-                    L${mapT(480)},${mapP(18.184949)}
-                    L${mapT(481)},${mapP(18.56179)}
-                    L${mapT(482)},${mapP(18.944683)}
-                    L${mapT(483)},${mapP(19.333693)}
-                    L${mapT(484)},${mapP(19.728886)}
-                    L${mapT(485)},${mapP(20.130327)}
-                    L${mapT(486)},${mapP(20.538082)}
-                    L${mapT(487)},${mapP(20.952218)}
-                    L${mapT(488)},${mapP(21.372801)}
-                    L${mapT(489)},${mapP(21.799898)}
-                    L${mapT(490)},${mapP(22.233575)}
-                    L${mapT(491)},${mapP(22.6739)}
-                    L${mapT(492)},${mapP(23.120941)}
-                    L${mapT(493)},${mapP(23.574764)}
-                    L${mapT(494)},${mapP(24.035439)}
-                    L${mapT(495)},${mapP(24.503032)}
-                    L${mapT(496)},${mapP(24.977612)}
-                    L${mapT(497)},${mapP(25.459247)}
-                    L${mapT(498)},${mapP(25.948008)}
-                    L${mapT(499)},${mapP(26.443961)}
-                    L${mapT(500)},${mapP(26.947177)}
-                    L${mapT(501)},${mapP(27.457724)}
-                    L${mapT(502)},${mapP(27.975672)}
-                    L${mapT(503)},${mapP(28.501092)}
-                    L${mapT(504)},${mapP(29.034052)}
-                    L${mapT(505)},${mapP(29.574623)}
-                    L${mapT(506)},${mapP(30.122874)}
-                    L${mapT(507)},${mapP(30.678878)}
-                    L${mapT(508)},${mapP(31.242703)}
-                    L${mapT(509)},${mapP(31.814421)}
-                    L${mapT(510)},${mapP(32.394103)}
-                    L${mapT(511)},${mapP(32.981819)}
-                    L${mapT(512)},${mapP(33.577642)}
-                    L${mapT(513)},${mapP(34.181642)}
-                    L${mapT(514)},${mapP(34.793891)}
-                    L${mapT(515)},${mapP(35.41446)}
-                    L${mapT(516)},${mapP(36.043422)}
-                    L${mapT(517)},${mapP(36.680848)}
-                    L${mapT(518)},${mapP(37.326811)}
-                    L${mapT(519)},${mapP(37.981382)}
-                    L${mapT(520)},${mapP(38.644634)}
-                    L${mapT(521)},${mapP(39.31664)}
-                    L${mapT(522)},${mapP(39.997472)}
-                    L${mapT(523)},${mapP(40.687202)}
-                    L${mapT(524)},${mapP(41.385905)}
-                    L${mapT(525)},${mapP(42.093651)}
-                    L${mapT(526)},${mapP(42.810516)}
-                    L${mapT(527)},${mapP(43.536571)}
-                    L${mapT(528)},${mapP(44.27189)}
-                    L${mapT(529)},${mapP(45.016546)}
-                    L${mapT(530)},${mapP(45.770613)}
-                    L${mapT(531)},${mapP(46.534163)}
-                    L${mapT(532)},${mapP(47.307272)}
-                    L${mapT(533)},${mapP(48.090012)}
-                    L${mapT(534)},${mapP(48.882457)}
-                    L${mapT(535)},${mapP(49.684681)}
-                    L${mapT(536)},${mapP(50.496758)}
-                    L${mapT(537)},${mapP(51.318762)}
-                    L${mapT(538)},${mapP(52.150766)}
-                    L${mapT(539)},${mapP(52.992845)}
-                    L${mapT(540)},${mapP(53.845073)}
-                    L${mapT(541)},${mapP(54.707524)}
-                    L${mapT(542)},${mapP(55.580272)}
-                    L${mapT(543)},${mapP(56.463392)}
-                    L${mapT(544)},${mapP(57.356957)}
-                    L${mapT(545)},${mapP(58.261043)}
-                    L${mapT(546)},${mapP(59.175723)}
-                    L${mapT(547)},${mapP(60.101072)}
-                    L${mapT(548)},${mapP(61.037164)}
-                    L${mapT(549)},${mapP(61.984074)}
-                    L${mapT(550)},${mapP(62.941876)}
-                    L${mapT(551)},${mapP(63.910644)}
-                    L${mapT(552)},${mapP(64.890454)}
-                    L${mapT(553)},${mapP(65.881379)}
-                    L${mapT(554)},${mapP(66.883494)}
-                    L${mapT(555)},${mapP(67.896874)}
-                    L${mapT(556)},${mapP(68.921593)}
-                    L${mapT(557)},${mapP(69.957725)}
-                    L${mapT(558)},${mapP(71.005345)}
-                    L${mapT(559)},${mapP(72.064528)}
-                    L${mapT(560)},${mapP(73.135347)}
-                    L${mapT(561)},${mapP(74.217878)}
-                    L${mapT(562)},${mapP(75.312194)}
-                    L${mapT(563)},${mapP(76.418371)}
-                    L${mapT(564)},${mapP(77.536482)}
-                    L${mapT(565)},${mapP(78.666601)}
-                    L${mapT(566)},${mapP(79.808804)}
-                    L${mapT(567)},${mapP(80.963164)}
-                    L${mapT(568)},${mapP(82.129755)}
-                    L${mapT(569)},${mapP(83.308652)}
-                    L${mapT(570)},${mapP(84.499928)}
-                    L${mapT(571)},${mapP(85.703659)}
-                    L${mapT(572)},${mapP(86.919917)}
-                    L${mapT(573)},${mapP(88.148777)}
-                    L${mapT(574)},${mapP(89.390312)}
-                    L${mapT(575)},${mapP(90.644597)}
-                    L${mapT(576)},${mapP(91.911705)}
-                    L${mapT(577)},${mapP(93.19171)}
-                    L${mapT(578)},${mapP(94.484685)}
-                    L${mapT(579)},${mapP(95.790705)}
-                    L${mapT(580)},${mapP(97.109842)}
-                    L${mapT(581)},${mapP(98.442169)}
-                    L${mapT(582)},${mapP(99.787761)}
-                    L${mapT(583)},${mapP(101.14669)}
-                    L${mapT(584)},${mapP(102.51903)}
-                    L${mapT(585)},${mapP(103.904853)}
-                    L${mapT(586)},${mapP(105.304232)}
-                    L${mapT(587)},${mapP(106.717241)}
-                    L${mapT(588)},${mapP(108.143951)}
-                    L${mapT(589)},${mapP(109.584436)}
-                    L${mapT(590)},${mapP(111.038769)}
-                    L${mapT(591)},${mapP(112.50702)}
-                    L${mapT(592)},${mapP(113.989264)}
-                    L${mapT(593)},${mapP(115.485571)}
-                    L${mapT(594)},${mapP(116.996015)}
-                    L${mapT(595)},${mapP(118.520666)}
-                    L${mapT(596)},${mapP(120.059597)}
-                    L${mapT(597)},${mapP(121.61288)}
-                    L${mapT(598)},${mapP(123.180585)}
-                    L${mapT(599)},${mapP(124.762785)}
-                    L${mapT(600)},${mapP(126.359551)}
-                    L${mapT(601)},${mapP(127.970954)}
-                    L${mapT(602)},${mapP(129.597064)}
-                    L${mapT(603)},${mapP(131.237954)}
-                    L${mapT(604)},${mapP(132.893692)}
-                    L${mapT(605)},${mapP(134.564351)}
-                    L${mapT(606)},${mapP(136.250001)}
-                    L${mapT(607)},${mapP(137.950711)}
-                    L${mapT(608)},${mapP(139.666553)}
-                    L${mapT(609)},${mapP(141.397595)}
-                    L${mapT(610)},${mapP(143.143908)}
-                    L${mapT(611)},${mapP(144.905562)}
-                    L${mapT(612)},${mapP(146.682625)}
-                    L${mapT(613)},${mapP(148.475168)}
-                    L${mapT(614)},${mapP(150.283259)}
-                    L${mapT(615)},${mapP(152.106968)}
-                    L${mapT(616)},${mapP(153.946363)}
-                    L${mapT(617)},${mapP(155.801513)}
-                    L${mapT(618)},${mapP(157.672487)}
-                    L${mapT(619)},${mapP(159.559352)}
-                    L${mapT(620)},${mapP(161.462177)}
-                    L${mapT(621)},${mapP(163.38103)}
-                    L${mapT(622)},${mapP(165.315978)}
-                    L${mapT(623)},${mapP(167.267089)}
-                    L${mapT(624)},${mapP(169.234431)}
-                    L${mapT(625)},${mapP(171.218071)}
-                    L${mapT(626)},${mapP(173.218075)}
-                    L${mapT(627)},${mapP(175.234511)}
-                    L${mapT(628)},${mapP(177.267445)}
-                    L${mapT(629)},${mapP(179.316943)}
-                    L${mapT(630)},${mapP(181.383072)}
-                    L${mapT(631)},${mapP(183.465898)}
-                    L${mapT(632)},${mapP(185.565487)}
-                    L${mapT(633)},${mapP(187.681903)}
-                    L${mapT(634)},${mapP(189.815213)}
-                    L${mapT(635)},${mapP(191.965482)}
-                    L${mapT(636)},${mapP(194.132774)}
-                    L${mapT(637)},${mapP(196.317155)}
-                    L${mapT(638)},${mapP(198.518688)}
-                    L${mapT(639)},${mapP(200.73744)}
-                    L${mapT(640)},${mapP(202.973472)}
-                    L${mapT(641)},${mapP(205.22685)}
-                    L${mapT(642)},${mapP(207.497636)}
-                    L${mapT(643)},${mapP(209.785896)}
-                    L${mapT(644)},${mapP(212.09169)}
-                    L${mapT(645)},${mapP(214.415084)}
-                    L${mapT(646)},${mapP(216.756139)}
-                    L${mapT(647.096)},${mapP(218.0)}
-                    L${mapT(647.096)},${mapP(217.75)}
-                    L${mapT(maxT)},${mapP(217.75)}
-                    L${mapT(maxT)},${mapP(minP)}
-                    L${mapT(minT)},${mapP(minP)}
-                    L${mapT(minT)},${mapP(sublimationPressure(minT))}
-                    Q${mapT(250)},${mapP(sublimationPressure(250))} ${mapT(273.15)},${mapP(0.00604)}
-                    Z
-                  `}
-                  fill={phaseColors.Gas}
-                  opacity={0.43}
-                />
-                {/* --- Supercritical region fill (beyond the critical point) --- */}
-                <Path
-                  d={`
-                    M${mapT(647.096)},${mapP(217.75)}           
-                    L${mapT(maxT)},${mapP(217.75)}             
-                    L${mapT(maxT)},${mapP(300)}                
-                    L${mapT(647.096)},${mapP(300)}             
-                    L${mapT(647.096)},${mapP(217.75)}             
-                    Z
-                  `}
-                  fill={phaseColors.Supercritical}
-                  opacity={0.45}
-                />
-                {/* Critical point boundary line */}
-                <Path
-                  d={`M${mapT(647.096)},${mapP(217.75)} L${mapT(647.096)},${mapP(300)}`}
+                  d={`M60,39 L60,${currentDiagramHeight - 40}`}
                   stroke={theme.titleText}
-                  strokeWidth="2.2"
-                  strokeDasharray="4,4"
-                  opacity={0.9}
+                  strokeWidth="2"
+                  opacity="0.7"
+                  fill="none"
                 />
-                {/* Draw solid region (left) - using accurate fusion curve */}
+                {/* Horizontal axis line */}
                 <Path
-                  d={`
-                    M${mapT(minT)},${mapP(300)}
-                    L${mapT(minT)},${mapP(sublimationPressure(minT))}
-                    Q${mapT(250)},${mapP(sublimationPressure(250))} ${mapT(T_TRIPLE)},${mapP(P_TRIPLE)}
-                    L${mapT(273.16)},${mapP(0.006117)}
-                    L${mapT(273.14)},${mapP(0.01)}
-                    L${mapT(273.00)},${mapP(0.1)}
-                    L${mapT(272.25)},${mapP(1)}
-                    L${mapT(270.2)},${mapP(10)}
-                    L${mapT(252.0)},${mapP(100)}
-                    L${mapT(240.0)},${mapP(200)}
-                    L${mapT(230.0)},${mapP(300)}
-                    Z
-                  `}
-                  fill={phaseColors["Solid"]}
-                  opacity="0.5"
+                  d={`M60,${currentDiagramHeight - 40} L${currentDiagramWidth - 60},${currentDiagramHeight - 40}`}
+                  stroke={theme.titleText}
+                  strokeWidth="2"
+                  opacity="0.7"
+                  fill="none"
                 />
-                {/* Draw liquid region (middle top) - using accurate vaporization curve and fusion curve */}
+                {/* --- Phase regions (accurate for water) --- */}
+                {/* Gas region (below vaporization curve and sublimation curve) */}
                 <Path
-                  d={`M${mapT(273.16)},${mapP(0.006117)}
-                    L${mapT(273.14)},${mapP(0.01)}
-                    L${mapT(273.00)},${mapP(0.1)}
-                    L${mapT(272.25)},${mapP(1)}
-                    L${mapT(270.2)},${mapP(10)}
-                    L${mapT(252.0)},${mapP(100)}
-                    L${mapT(240.0)},${mapP(200)}
-                    L${mapT(230.0)},${mapP(300)}
-                    L${mapT(647.096)},${mapP(300)}
-                    L${mapT(647.096)},${mapP(217.75)}
-                    L${mapT(647.096)},${mapP(218.0)}
-                    L${mapT(646)},${mapP(216.756139)}
-                    L${mapT(645)},${mapP(214.415084)}
-                    L${mapT(644)},${mapP(212.09169)}
-                    L${mapT(643)},${mapP(209.785896)}
-                    L${mapT(642)},${mapP(207.497636)}
-                    L${mapT(641)},${mapP(205.22685)}
-                    L${mapT(640)},${mapP(202.973472)}
-                    L${mapT(639)},${mapP(200.73744)}
-                    L${mapT(638)},${mapP(198.518688)}
-                    L${mapT(637)},${mapP(196.317155)}
-                    L${mapT(636)},${mapP(194.132774)}
-                    L${mapT(635)},${mapP(191.965482)}
-                    L${mapT(634)},${mapP(189.815213)}
-                    L${mapT(633)},${mapP(187.681903)}
-                    L${mapT(632)},${mapP(185.565487)}
-                    L${mapT(631)},${mapP(183.465898)}
-                    L${mapT(630)},${mapP(181.383072)}
-                    L${mapT(629)},${mapP(179.316943)}
-                    L${mapT(628)},${mapP(177.267445)}
-                    L${mapT(627)},${mapP(175.234511)}
-                    L${mapT(626)},${mapP(173.218075)}
-                    L${mapT(625)},${mapP(171.218071)}
-                    L${mapT(624)},${mapP(169.234431)}
-                    L${mapT(623)},${mapP(167.267089)}
-                    L${mapT(622)},${mapP(165.315978)}
-                    L${mapT(621)},${mapP(163.38103)}
-                    L${mapT(620)},${mapP(161.462177)}
-                    L${mapT(619)},${mapP(159.559352)}
-                    L${mapT(618)},${mapP(157.672487)}
-                    L${mapT(617)},${mapP(155.801513)}
-                    L${mapT(616)},${mapP(153.946363)}
-                    L${mapT(615)},${mapP(152.106968)}
-                    L${mapT(614)},${mapP(150.283259)}
-                    L${mapT(613)},${mapP(148.475168)}
-                    L${mapT(612)},${mapP(146.682625)}
-                    L${mapT(611)},${mapP(144.905562)}
-                    L${mapT(610)},${mapP(143.143908)}
-                    L${mapT(609)},${mapP(141.397595)}
-                    L${mapT(608)},${mapP(139.666553)}
-                    L${mapT(607)},${mapP(137.950711)}
-                    L${mapT(606)},${mapP(136.250001)}
-                    L${mapT(605)},${mapP(134.564351)}
-                    L${mapT(604)},${mapP(132.893692)}
-                    L${mapT(603)},${mapP(131.237954)}
-                    L${mapT(602)},${mapP(129.597064)}
-                    L${mapT(601)},${mapP(127.970954)}
-                    L${mapT(600)},${mapP(126.359551)}
-                    L${mapT(599)},${mapP(124.762785)}
-                    L${mapT(598)},${mapP(123.180585)}
-                    L${mapT(597)},${mapP(121.61288)}
-                    L${mapT(596)},${mapP(120.059597)}
-                    L${mapT(595)},${mapP(118.520666)}
-                    L${mapT(594)},${mapP(116.996015)}
-                    L${mapT(593)},${mapP(115.485571)}
-                    L${mapT(592)},${mapP(113.989264)}
-                    L${mapT(591)},${mapP(112.50702)}
-                    L${mapT(590)},${mapP(111.038769)}
-                    L${mapT(589)},${mapP(109.584436)}
-                    L${mapT(588)},${mapP(108.143951)}
-                    L${mapT(587)},${mapP(106.717241)}
-                    L${mapT(586)},${mapP(105.304232)}
-                    L${mapT(585)},${mapP(103.904853)}
-                    L${mapT(584)},${mapP(102.51903)}
-                    L${mapT(583)},${mapP(101.14669)}
-                    L${mapT(582)},${mapP(99.787761)}
-                    L${mapT(581)},${mapP(98.442169)}
-                    L${mapT(580)},${mapP(97.109842)}
-                    L${mapT(579)},${mapP(95.790705)}
-                    L${mapT(578)},${mapP(94.484685)}
-                    L${mapT(577)},${mapP(93.19171)}
-                    L${mapT(576)},${mapP(91.911705)}
-                    L${mapT(575)},${mapP(90.644597)}
-                    L${mapT(574)},${mapP(89.390312)}
-                    L${mapT(573)},${mapP(88.148777)}
-                    L${mapT(572)},${mapP(86.919917)}
-                    L${mapT(571)},${mapP(85.703659)}
-                    L${mapT(570)},${mapP(84.499928)}
-                    L${mapT(569)},${mapP(83.308652)}
-                    L${mapT(568)},${mapP(82.129755)}
-                    L${mapT(567)},${mapP(80.963164)}
-                    L${mapT(566)},${mapP(79.808804)}
-                    L${mapT(565)},${mapP(78.666601)}
-                    L${mapT(564)},${mapP(77.536482)}
-                    L${mapT(563)},${mapP(76.418371)}
-                    L${mapT(562)},${mapP(75.312194)}
-                    L${mapT(561)},${mapP(74.217878)}
-                    L${mapT(560)},${mapP(73.135347)}
-                    L${mapT(559)},${mapP(72.064528)}
-                    L${mapT(558)},${mapP(71.005345)}
-                    L${mapT(557)},${mapP(69.957725)}
-                    L${mapT(556)},${mapP(68.921593)}
-                    L${mapT(555)},${mapP(67.896874)}
-                    L${mapT(554)},${mapP(66.883494)}
-                    L${mapT(553)},${mapP(65.881379)}
-                    L${mapT(552)},${mapP(64.890454)}
-                    L${mapT(551)},${mapP(63.910644)}
-                    L${mapT(550)},${mapP(62.941876)}
-                    L${mapT(549)},${mapP(61.984074)}
-                    L${mapT(548)},${mapP(61.037164)}
-                    L${mapT(547)},${mapP(60.101072)}
-                    L${mapT(546)},${mapP(59.175723)}
-                    L${mapT(545)},${mapP(58.261043)}
-                    L${mapT(544)},${mapP(57.356957)}
-                    L${mapT(543)},${mapP(56.463392)}
-                    L${mapT(542)},${mapP(55.580272)}
-                    L${mapT(541)},${mapP(54.707524)}
-                    L${mapT(540)},${mapP(53.845073)}
-                    L${mapT(539)},${mapP(52.992845)}
-                    L${mapT(538)},${mapP(52.150766)}
-                    L${mapT(537)},${mapP(51.318762)}
-                    L${mapT(536)},${mapP(50.496758)}
-                    L${mapT(535)},${mapP(49.684681)}
-                    L${mapT(534)},${mapP(48.882457)}
-                    L${mapT(533)},${mapP(48.090012)}
-                    L${mapT(532)},${mapP(47.307272)}
-                    L${mapT(531)},${mapP(46.534163)}
-                    L${mapT(530)},${mapP(45.770613)}
-                    L${mapT(529)},${mapP(45.016546)}
-                    L${mapT(528)},${mapP(44.27189)}
-                    L${mapT(527)},${mapP(43.536571)}
-                    L${mapT(526)},${mapP(42.810516)}
-                    L${mapT(525)},${mapP(42.093651)}
-                    L${mapT(524)},${mapP(41.385905)}
-                    L${mapT(523)},${mapP(40.687202)}
-                    L${mapT(522)},${mapP(39.997472)}
-                    L${mapT(521)},${mapP(39.31664)}
-                    L${mapT(520)},${mapP(38.644634)}
-                    L${mapT(519)},${mapP(37.981382)}
-                    L${mapT(518)},${mapP(37.326811)}
-                    L${mapT(517)},${mapP(36.680848)}
-                    L${mapT(516)},${mapP(36.043422)}
-                    L${mapT(515)},${mapP(35.41446)}
-                    L${mapT(514)},${mapP(34.793891)}
-                    L${mapT(513)},${mapP(34.181642)}
-                    L${mapT(512)},${mapP(33.577642)}
-                    L${mapT(511)},${mapP(32.981819)}
-                    L${mapT(510)},${mapP(32.394103)}
-                    L${mapT(509)},${mapP(31.814421)}
-                    L${mapT(508)},${mapP(31.242703)}
-                    L${mapT(507)},${mapP(30.678878)}
-                    L${mapT(506)},${mapP(30.122874)}
-                    L${mapT(505)},${mapP(29.574623)}
-                    L${mapT(504)},${mapP(29.034052)}
-                    L${mapT(503)},${mapP(28.501092)}
-                    L${mapT(502)},${mapP(27.975672)}
-                    L${mapT(501)},${mapP(27.457724)}
-                    L${mapT(500)},${mapP(26.947177)}
-                    L${mapT(499)},${mapP(26.443961)}
-                    L${mapT(498)},${mapP(25.948008)}
-                    L${mapT(497)},${mapP(25.459247)}
-                    L${mapT(496)},${mapP(24.977612)}
-                    L${mapT(495)},${mapP(24.503032)}
-                    L${mapT(494)},${mapP(24.035439)}
-                    L${mapT(493)},${mapP(23.574764)}
-                    L${mapT(492)},${mapP(23.120941)}
-                    L${mapT(491)},${mapP(22.6739)}
-                    L${mapT(490)},${mapP(22.233575)}
-                    L${mapT(489)},${mapP(21.799898)}
-                    L${mapT(488)},${mapP(21.372801)}
-                    L${mapT(487)},${mapP(20.952218)}
-                    L${mapT(486)},${mapP(20.538082)}
-                    L${mapT(485)},${mapP(20.130327)}
-                    L${mapT(484)},${mapP(19.728886)}
-                    L${mapT(483)},${mapP(19.333693)}
-                    L${mapT(482)},${mapP(18.944683)}
-                    L${mapT(481)},${mapP(18.56179)}
-                    L${mapT(480)},${mapP(18.184949)}
-                    L${mapT(479)},${mapP(17.814095)}
-                    L${mapT(478)},${mapP(17.449163)}
-                    L${mapT(477)},${mapP(17.090089)}
-                    L${mapT(476)},${mapP(16.736809)}
-                    L${mapT(475)},${mapP(16.389258)}
-                    L${mapT(474)},${mapP(16.047374)}
-                    L${mapT(473)},${mapP(15.711093)}
-                    L${mapT(472)},${mapP(15.380351)}
-                    L${mapT(471)},${mapP(15.055087)}
-                    L${mapT(470)},${mapP(14.735237)}
-                    L${mapT(469)},${mapP(14.42074)}
-                    L${mapT(468)},${mapP(14.111533)}
-                    L${mapT(467)},${mapP(13.807555)}
-                    L${mapT(466)},${mapP(13.508745)}
-                    L${mapT(465)},${mapP(13.215042)}
-                    L${mapT(464)},${mapP(12.926385)}
-                    L${mapT(463)},${mapP(12.642714)}
-                    L${mapT(462)},${mapP(12.363968)}
-                    L${mapT(461)},${mapP(12.090089)}
-                    L${mapT(460)},${mapP(11.821016)}
-                    L${mapT(459)},${mapP(11.556691)}
-                    L${mapT(458)},${mapP(11.297054)}
-                    L${mapT(457)},${mapP(11.042048)}
-                    L${mapT(456)},${mapP(10.791614)}
-                    L${mapT(455)},${mapP(10.545695)}
-                    L${mapT(454)},${mapP(10.304234)}
-                    L${mapT(453)},${mapP(10.067172)}
-                    L${mapT(452)},${mapP(9.834454)}
-                    L${mapT(451)},${mapP(9.606022)}
-                    L${mapT(450)},${mapP(9.381822)}
-                    L${mapT(449)},${mapP(9.161797)}
-                    L${mapT(448)},${mapP(8.945893)}
-                    L${mapT(447)},${mapP(8.734053)}
-                    L${mapT(446)},${mapP(8.526224)}
-                    L${mapT(445)},${mapP(8.322351)}
-                    L${mapT(444)},${mapP(8.12238)}
-                    L${mapT(443)},${mapP(7.926258)}
-                    L${mapT(442)},${mapP(7.733932)}
-                    L${mapT(441)},${mapP(7.545348)}
-                    L${mapT(440)},${mapP(7.360455)}
-                    L${mapT(439)},${mapP(7.179201)}
-                    L${mapT(438)},${mapP(7.001533)}
-                    L${mapT(437)},${mapP(6.827401)}
-                    L${mapT(436)},${mapP(6.656753)}
-                    L${mapT(435)},${mapP(6.48954)}
-                    L${mapT(434)},${mapP(6.32571)}
-                    L${mapT(433)},${mapP(6.165215)}
-                    L${mapT(432)},${mapP(6.008004)}
-                    L${mapT(431)},${mapP(5.854029)}
-                    L${mapT(430)},${mapP(5.703241)}
-                    L${mapT(429)},${mapP(5.555593)}
-                    L${mapT(428)},${mapP(5.411036)}
-                    L${mapT(427)},${mapP(5.269522)}
-                    L${mapT(426)},${mapP(5.131006)}
-                    L${mapT(425)},${mapP(4.99544)}
-                    L${mapT(424)},${mapP(4.862778)}
-                    L${mapT(423)},${mapP(4.732974)}
-                    L${mapT(422)},${mapP(4.605983)}
-                    L${mapT(421)},${mapP(4.48176)}
-                    L${mapT(420)},${mapP(4.36026)}
-                    L${mapT(419)},${mapP(4.241439)}
-                    L${mapT(418)},${mapP(4.125254)}
-                    L${mapT(417)},${mapP(4.01166)}
-                    L${mapT(416)},${mapP(3.900616)}
-                    L${mapT(415)},${mapP(3.792078)}
-                    L${mapT(414)},${mapP(3.686004)}
-                    L${mapT(413)},${mapP(3.582353)}
-                    L${mapT(412)},${mapP(3.481083)}
-                    L${mapT(411)},${mapP(3.382153)}
-                    L${mapT(410)},${mapP(3.285523)}
-                    L${mapT(409)},${mapP(3.191153)}
-                    L${mapT(408)},${mapP(3.099003)}
-                    L${mapT(407)},${mapP(3.009033)}
-                    L${mapT(406)},${mapP(2.921206)}
-                    L${mapT(405)},${mapP(2.835482)}
-                    L${mapT(404)},${mapP(2.751824)}
-                    L${mapT(403)},${mapP(2.670194)}
-                    L${mapT(402)},${mapP(2.590555)}
-                    L${mapT(401)},${mapP(2.512869)}
-                    L${mapT(400)},${mapP(2.437102)}
-                    L${mapT(399)},${mapP(2.363216)}
-                    L${mapT(398)},${mapP(2.291176)}
-                    L${mapT(397)},${mapP(2.220947)}
-                    L${mapT(396)},${mapP(2.152495)}
-                    L${mapT(395)},${mapP(2.085785)}
-                    L${mapT(394)},${mapP(2.020783)}
-                    L${mapT(393)},${mapP(1.957456)}
-                    L${mapT(392)},${mapP(1.895771)}
-                    L${mapT(391)},${mapP(1.835695)}
-                    L${mapT(390)},${mapP(1.777196)}
-                    L${mapT(389)},${mapP(1.720243)}
-                    L${mapT(388)},${mapP(1.664803)}
-                    L${mapT(387)},${mapP(1.610845)}
-                    L${mapT(386)},${mapP(1.55834)}
-                    L${mapT(385)},${mapP(1.507257)}
-                    L${mapT(384)},${mapP(1.457567)}
-                    L${mapT(383)},${mapP(1.409239)}
-                    L${mapT(382)},${mapP(1.362245)}
-                    L${mapT(381)},${mapP(1.316557)}
-                    L${mapT(380)},${mapP(1.272145)}
-                    L${mapT(379)},${mapP(1.228984)}
-                    L${mapT(378)},${mapP(1.187044)}
-                    L${mapT(377)},${mapP(1.1463)}
-                    L${mapT(376)},${mapP(1.106724)}
-                    L${mapT(375)},${mapP(1.068291)}
-                    L${mapT(374)},${mapP(1.030974)}
-                    L${mapT(373)},${mapP(0.994748)}
-                    L${mapT(372)},${mapP(0.959589)}
-                    L${mapT(371)},${mapP(0.925472)}
-                    L${mapT(370)},${mapP(0.892371)}
-                    L${mapT(369)},${mapP(0.860265)}
-                    L${mapT(368)},${mapP(0.829128)}
-                    L${mapT(367)},${mapP(0.798938)}
-                    L${mapT(366)},${mapP(0.769673)}
-                    L${mapT(365)},${mapP(0.741309)}
-                    L${mapT(364)},${mapP(0.713825)}
-                    L${mapT(363)},${mapP(0.6872)}
-                    L${mapT(362)},${mapP(0.661412)}
-                    L${mapT(361)},${mapP(0.63644)}
-                    L${mapT(360)},${mapP(0.612263)}
-                    L${mapT(359)},${mapP(0.588862)}
-                    L${mapT(358)},${mapP(0.566217)}
-                    L${mapT(357)},${mapP(0.544308)}
-                    L${mapT(356)},${mapP(0.523117)}
-                    L${mapT(355)},${mapP(0.502623)}
-                    L${mapT(354)},${mapP(0.48281)}
-                    L${mapT(353)},${mapP(0.463659)}
-                    L${mapT(352)},${mapP(0.445152)}
-                    L${mapT(351)},${mapP(0.427271)}
-                    L${mapT(350)},${mapP(0.410001)}
-                    L${mapT(349)},${mapP(0.393324)}
-                    L${mapT(348)},${mapP(0.377223)}
-                    L${mapT(347)},${mapP(0.361683)}
-                    L${mapT(346)},${mapP(0.346688)}
-                    L${mapT(345)},${mapP(0.332223)}
-                    L${mapT(344)},${mapP(0.318272)}
-                    L${mapT(343)},${mapP(0.304821)}
-                    L${mapT(342)},${mapP(0.291854)}
-                    L${mapT(341)},${mapP(0.279359)}
-                    L${mapT(340)},${mapP(0.26732)}
-                    L${mapT(339)},${mapP(0.255726)}
-                    L${mapT(338)},${mapP(0.244561)}
-                    L${mapT(337)},${mapP(0.233813)}
-                    L${mapT(336)},${mapP(0.22347)}
-                    L${mapT(335)},${mapP(0.21352)}
-                    L${mapT(334)},${mapP(0.203949)}
-                    L${mapT(333)},${mapP(0.194746)}
-                    L${mapT(332)},${mapP(0.185899)}
-                    L${mapT(331)},${mapP(0.177398)}
-                    L${mapT(330)},${mapP(0.169231)}
-                    L${mapT(329)},${mapP(0.161388)}
-                    L${mapT(328)},${mapP(0.153857)}
-                    L${mapT(327)},${mapP(0.146629)}
-                    L${mapT(326)},${mapP(0.139694)}
-                    L${mapT(325)},${mapP(0.133041)}
-                    L${mapT(324)},${mapP(0.126662)}
-                    L${mapT(323)},${mapP(0.120546)}
-                    L${mapT(322)},${mapP(0.114686)}
-                    L${mapT(321)},${mapP(0.109072)}
-                    L${mapT(320)},${mapP(0.103696)}
-                    L${mapT(319)},${mapP(0.098549)}
-                    L${mapT(318)},${mapP(0.093623)}
-                    L${mapT(317)},${mapP(0.088911)}
-                    L${mapT(316)},${mapP(0.084404)}
-                    L${mapT(315)},${mapP(0.080095)}
-                    L${mapT(314)},${mapP(0.075977)}
-                    L${mapT(313)},${mapP(0.072044)}
-                    L${mapT(312)},${mapP(0.068287)}
-                    L${mapT(311)},${mapP(0.0647)}
-                    L${mapT(310)},${mapP(0.061278)}
-                    L${mapT(309)},${mapP(0.058013)}
-                    L${mapT(308)},${mapP(0.054899)}
-                    L${mapT(307)},${mapP(0.051931)}
-                    L${mapT(306)},${mapP(0.049103)}
-                    L${mapT(305)},${mapP(0.04641)}
-                    L${mapT(304)},${mapP(0.043846)}
-                    L${mapT(303)},${mapP(0.041405)}
-                    L${mapT(302)},${mapP(0.039083)}
-                    L${mapT(301)},${mapP(0.036875)}
-                    L${mapT(300)},${mapP(0.034776)}
-                    L${mapT(299)},${mapP(0.032782)}
-                    L${mapT(298)},${mapP(0.030888)}
-                    L${mapT(297)},${mapP(0.029091)}
-                    L${mapT(296)},${mapP(0.027384)}
-                    L${mapT(295)},${mapP(0.025766)}
-                    L${mapT(294)},${mapP(0.024232)}
-                    L${mapT(293)},${mapP(0.022778)}
-                    L${mapT(292)},${mapP(0.021401)}
-                    L${mapT(291)},${mapP(0.020097)}
-                    L${mapT(290)},${mapP(0.018863)}
-                    L${mapT(289)},${mapP(0.017696)}
-                    L${mapT(288)},${mapP(0.016592)}
-                    L${mapT(287)},${mapP(0.01555)}
-                    L${mapT(286)},${mapP(0.014565)}
-                    L${mapT(285)},${mapP(0.013635)}
-                    L${mapT(284)},${mapP(0.012757)}
-                    L${mapT(283)},${mapP(0.01193)}
-                    L${mapT(282)},${mapP(0.01115)}
-                    L${mapT(281)},${mapP(0.010415)}
-                    L${mapT(280)},${mapP(0.009723)}
-                    L${mapT(279)},${mapP(0.009072)}
-                    L${mapT(278)},${mapP(0.00846)}
-                    L${mapT(277)},${mapP(0.007884)}
-                    L${mapT(276)},${mapP(0.007343)}
-                    L${mapT(275)},${mapP(0.006835)}
-                    L${mapT(274)},${mapP(0.006359)}
-                    L${mapT(273)},${mapP(0.005911)}
-                    L${mapT(273.15)},${mapP(0.00604)}
-                    Z`}
+                  d={(() => {
+                    // Generate sublimation curve points for gas region boundary
+                    const sublimationPoints = [];
+                    for (let T = 200; T <= 273.16; T += 5) {
+                      const P = sublimationPressure(T);
+                      if (P > 0.00001 && P < 0.01) {
+                        sublimationPoints.push([T, P]);
+                      }
+                    }
+                    
+                    // Create gas region path
+                    let pathData = `M${mapT(minT)},${mapP(minP)} `;
+                    
+                    // Add sublimation curve boundary (from minT to triple point)
+                    if (sublimationPoints.length > 0) {
+                      sublimationPoints.forEach(([T, P], i) => {
+                        const x = mapT(T);
+                        const y = mapP(P);
+                        pathData += `${i === 0 ? 'L' : 'L'}${x},${y} `;
+                      });
+                    }
+                    
+                    // Add vaporization curve boundary (from triple point to critical point)
+                    // Start from the exact triple point coordinates
+                    pathData += `M${mapT(273.16)},${mapP(0.006117)} `;
+                    pathData += `Q${mapT(350)},${mapP(0.4)} ${mapT(373.15)},${mapP(1)} `;
+                    pathData += `Q${mapT(580)},${mapP(30)} ${mapT(647.096)},${mapP(218.0)} `;
+                    // Extend to maximum temperature at critical pressure
+                    pathData += `L${mapT(maxT)},${mapP(218.0)} `;
+                    // Close the path
+                    pathData += `L${mapT(maxT)},${mapP(minP)} L${mapT(minT)},${mapP(minP)} Z`;
+                    return pathData;
+                  })()}
+                  fill={phaseColors.Gas}
+                  opacity="0.25"
+                />
+                
+                {/* Solid region (above fusion curve and sublimation curve) */}
+                <Path
+                  d={(() => {
+                    // Generate sublimation curve points for solid region boundary
+                    const sublimationPoints = [];
+                    for (let T = 200; T <= 273.16; T += 5) {
+                      const P = sublimationPressure(T);
+                      if (P > 0.00001 && P < 0.01) {
+                        sublimationPoints.push([T, P]);
+                      }
+                    }
+                    
+                    // Create solid region path
+                    let pathData = `M${mapT(273.16)},${mapP(0.006117)} `;
+                    
+                    // Add fusion curve boundary
+                    pathData += `L${mapT(273.15)},${mapP(1)} L${mapT(273.14)},${mapP(10)} L${mapT(273.13)},${mapP(50)} L${mapT(273.12)},${mapP(100)} L${mapT(273.11)},${mapP(130)} L${mapT(273.10)},${mapP(150)} L${mapT(273.09)},${mapP(200)} L${mapT(273.08)},${mapP(250)} L${mapT(273.07)},${mapP(maxP)} `;
+                    pathData += `L${mapT(minT)},${mapP(maxP)} `;
+                    pathData += `L${mapT(minT)},${mapP(minP)} `;
+                    
+                    // Add sublimation curve boundary (from minT to triple point, in reverse)
+                    if (sublimationPoints.length > 0) {
+                      for (let i = sublimationPoints.length - 1; i >= 0; i--) {
+                        const [T, P] = sublimationPoints[i];
+                        const x = mapT(T);
+                        const y = mapP(P);
+                        pathData += `L${x},${y} `;
+                      }
+                    }
+                    
+                    // Close the path
+                    pathData += `Z`;
+                    
+                    return pathData;
+                  })()}
+                  fill={phaseColors.Solid}
+                  opacity="0.25"
+                />
+                
+                {/* Liquid region (between vaporization and fusion curves) */}
+                <Path
+                  d={(() => {
+                    // Create liquid region path
+                    let pathData = `M${mapT(273.16)},${mapP(0.006117)} `;
+                    // Add vaporization curve boundary (from triple point to critical point)
+                    pathData += `Q${mapT(350)},${mapP(0.4)} ${mapT(373.15)},${mapP(1)} `;
+                    pathData += `Q${mapT(580)},${mapP(30)} ${mapT(647.096)},${mapP(218.0)} `;
+                    // Extend to maximum pressure at critical temperature
+                    pathData += `L${mapT(647.096)},${mapP(maxP)} `;
+                    // Add fusion curve boundary (from critical temperature to minimum temperature)
+                    pathData += `L${mapT(273.07)},${mapP(maxP)} `;
+                    pathData += `L${mapT(273.08)},${mapP(250)} `;
+                    pathData += `L${mapT(273.09)},${mapP(200)} `;
+                    pathData += `L${mapT(273.10)},${mapP(150)} `;
+                    pathData += `L${mapT(273.11)},${mapP(130)} `;
+                    pathData += `L${mapT(273.12)},${mapP(100)} `;
+                    pathData += `L${mapT(273.13)},${mapP(50)} `;
+                    pathData += `L${mapT(273.14)},${mapP(10)} `;
+                    pathData += `L${mapT(273.15)},${mapP(1)} `;
+                    // Close the path
+                    pathData += `Z`;
+                    return pathData;
+                  })()}
                   fill={phaseColors.Liquid}
                   opacity="0.38"
                 />
+                
+                {/* Supercritical region (above critical point) */}
+                <Path
+                  d={`
+                    M${mapT(647.096)},${mapP(218.0)} L${mapT(647.096)},${mapP(300)}
+                    L${mapT(maxT)},${mapP(300)}
+                    L${mapT(maxT)},${mapP(218.0)}
+                    Z`}
+                  fill={phaseColors.Supercritical}
+                  opacity="0.25"
+                />
+                
+                {/* Phase labels - adjust x positions for stretched scale */}
+                <SvgText
+                  x={mapT(220)}
+                  y={mapP(100)}
+                  fontSize="15"
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  opacity={0.94}
+                >
+                  Solid
+                </SvgText>
+                <SvgText
+                  x={mapT(320)}
+                  y={mapP(170)}
+                  fontSize="15"
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  opacity={0.94}
+                >
+                  Liquid
+                </SvgText>
+                <SvgText
+                  x={mapT(500)}
+                  y={mapP(0.050)}
+                  fontSize="15"
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  opacity={0.94}
+                >
+                  Gas
+                </SvgText>
+                <SvgText
+                  x={mapT(650)}
+                  y={mapP(250)}
+                  fontSize="10"
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  opacity={0.94}
+                >
+                  Supercritical
+                </SvgText>
+                
                 {/* --- Phase boundaries --- */}
                 {/* Sublimation curve (solid-gas) */}
                 <Path
-                  d={`M${mapT(minT)},${mapP(sublimationPressure(minT))}
-                Q${mapT(250)},${mapP(sublimationPressure(250))} ${mapT(T_TRIPLE)},${mapP(P_TRIPLE)}`}
-                  stroke={theme.titleText}
-                  strokeWidth="2.2"
-                  fill="none"
-                  opacity="0.9"
-                />
-                {/* Fusion curve (solid-liquid, nearly vertical) */}
-                <Path
-                  d={`M${mapT(273.16)},${mapP(0.006117)}
-                    L${mapT(273.14)},${mapP(0.01)}
-                    L${mapT(273.00)},${mapP(0.1)}
-                    L${mapT(272.25)},${mapP(1)}
-                    L${mapT(270.2)},${mapP(10)}
-                    L${mapT(252.0)},${mapP(100)}
-                    L${mapT(240.0)},${mapP(200)}
-                    L${mapT(230.0)},${mapP(300)}`}
-                  stroke={theme.titleText}
-                  strokeWidth="2.2"
-                  fill="none"
-                  opacity="0.9"
-                />
-                {/* Vaporization curve (liquid-gas) - using accurate data points */}
-                <Path
-                  d={`M${mapT(273.16)},${mapP(0.006117)}
-                    L${mapT(274)},${mapP(0.006359)}
-                    L${mapT(275)},${mapP(0.006835)}
-                    L${mapT(276)},${mapP(0.007343)}
-                    L${mapT(277)},${mapP(0.007884)}
-                    L${mapT(278)},${mapP(0.00846)}
-                    L${mapT(279)},${mapP(0.009072)}
-                    L${mapT(280)},${mapP(0.009723)}
-                    L${mapT(281)},${mapP(0.010415)}
-                    L${mapT(282)},${mapP(0.01115)}
-                    L${mapT(283)},${mapP(0.01193)}
-                    L${mapT(284)},${mapP(0.012757)}
-                    L${mapT(285)},${mapP(0.013635)}
-                    L${mapT(286)},${mapP(0.014565)}
-                    L${mapT(287)},${mapP(0.01555)}
-                    L${mapT(288)},${mapP(0.016592)}
-                    L${mapT(289)},${mapP(0.017696)}
-                    L${mapT(290)},${mapP(0.018863)}
-                    L${mapT(291)},${mapP(0.020097)}
-                    L${mapT(292)},${mapP(0.021401)}
-                    L${mapT(293)},${mapP(0.022778)}
-                    L${mapT(294)},${mapP(0.024232)}
-                    L${mapT(295)},${mapP(0.025766)}
-                    L${mapT(296)},${mapP(0.027384)}
-                    L${mapT(297)},${mapP(0.029091)}
-                    L${mapT(298)},${mapP(0.030888)}
-                    L${mapT(299)},${mapP(0.032782)}
-                    L${mapT(300)},${mapP(0.034776)}
-                    L${mapT(301)},${mapP(0.036875)}
-                    L${mapT(302)},${mapP(0.039083)}
-                    L${mapT(303)},${mapP(0.041405)}
-                    L${mapT(304)},${mapP(0.043846)}
-                    L${mapT(305)},${mapP(0.04641)}
-                    L${mapT(306)},${mapP(0.049103)}
-                    L${mapT(307)},${mapP(0.051931)}
-                    L${mapT(308)},${mapP(0.054899)}
-                    L${mapT(309)},${mapP(0.058013)}
-                    L${mapT(310)},${mapP(0.061278)}
-                    L${mapT(311)},${mapP(0.0647)}
-                    L${mapT(312)},${mapP(0.068287)}
-                    L${mapT(313)},${mapP(0.072044)}
-                    L${mapT(314)},${mapP(0.075977)}
-                    L${mapT(315)},${mapP(0.080095)}
-                    L${mapT(316)},${mapP(0.084404)}
-                    L${mapT(317)},${mapP(0.088911)}
-                    L${mapT(318)},${mapP(0.093623)}
-                    L${mapT(319)},${mapP(0.098549)}
-                    L${mapT(320)},${mapP(0.103696)}
-                    L${mapT(321)},${mapP(0.109072)}
-                    L${mapT(322)},${mapP(0.114686)}
-                    L${mapT(323)},${mapP(0.120546)}
-                    L${mapT(324)},${mapP(0.126662)}
-                    L${mapT(325)},${mapP(0.133041)}
-                    L${mapT(326)},${mapP(0.139694)}
-                    L${mapT(327)},${mapP(0.146629)}
-                    L${mapT(328)},${mapP(0.153857)}
-                    L${mapT(329)},${mapP(0.161388)}
-                    L${mapT(330)},${mapP(0.169231)}
-                    L${mapT(331)},${mapP(0.177398)}
-                    L${mapT(332)},${mapP(0.185899)}
-                    L${mapT(333)},${mapP(0.194746)}
-                    L${mapT(334)},${mapP(0.203949)}
-                    L${mapT(335)},${mapP(0.21352)}
-                    L${mapT(336)},${mapP(0.22347)}
-                    L${mapT(337)},${mapP(0.233813)}
-                    L${mapT(338)},${mapP(0.244561)}
-                    L${mapT(339)},${mapP(0.255726)}
-                    L${mapT(340)},${mapP(0.26732)}
-                    L${mapT(341)},${mapP(0.279359)}
-                    L${mapT(342)},${mapP(0.291854)}
-                    L${mapT(343)},${mapP(0.304821)}
-                    L${mapT(344)},${mapP(0.318272)}
-                    L${mapT(345)},${mapP(0.332223)}
-                    L${mapT(346)},${mapP(0.346688)}
-                    L${mapT(347)},${mapP(0.361683)}
-                    L${mapT(348)},${mapP(0.377223)}
-                    L${mapT(349)},${mapP(0.393324)}
-                    L${mapT(350)},${mapP(0.410001)}
-                    L${mapT(351)},${mapP(0.427271)}
-                    L${mapT(352)},${mapP(0.445152)}
-                    L${mapT(353)},${mapP(0.463659)}
-                    L${mapT(354)},${mapP(0.48281)}
-                    L${mapT(355)},${mapP(0.502623)}
-                    L${mapT(356)},${mapP(0.523117)}
-                    L${mapT(357)},${mapP(0.544308)}
-                    L${mapT(358)},${mapP(0.566217)}
-                    L${mapT(359)},${mapP(0.588862)}
-                    L${mapT(371)},${mapP(0.76574)}
-                    L${mapT(373.15)},${mapP(1.00000)}
+                  d={(() => {
+                    // Generate accurate sublimation curve data points
+                    const sublimationPoints = [];
+                    for (let T = 200; T <= 273.16; T += 5) {
+                      const P = sublimationPressure(T);
+                      if (P > 0.00001 && P < 0.01) { // Only include reasonable pressure values
+                        sublimationPoints.push([T, P]);
+                      }
+                    }
                     
-                    L${mapT(374)},${mapP(1.030974)}
-                    L${mapT(375)},${mapP(1.068291)}
-                    L${mapT(376)},${mapP(1.106724)}
-                    L${mapT(377)},${mapP(1.1463)}
-                    L${mapT(378)},${mapP(1.187044)}
-                    L${mapT(379)},${mapP(1.228984)}
-                    L${mapT(380)},${mapP(1.272145)}
-                    L${mapT(381)},${mapP(1.316557)}
-                    L${mapT(382)},${mapP(1.362245)}
-                    L${mapT(383)},${mapP(1.409239)}
-                    L${mapT(384)},${mapP(1.457567)}
-                    L${mapT(385)},${mapP(1.507257)}
-                    L${mapT(386)},${mapP(1.55834)}
-                    L${mapT(387)},${mapP(1.610845)}
-                    L${mapT(388)},${mapP(1.664803)}
-                    L${mapT(389)},${mapP(1.720243)}
-                    L${mapT(390)},${mapP(1.777196)}
-                    L${mapT(391)},${mapP(1.835695)}
-                    L${mapT(392)},${mapP(1.895771)}
-                    L${mapT(393)},${mapP(1.957456)}
-                    L${mapT(394)},${mapP(2.020783)}
-                    L${mapT(395)},${mapP(2.085785)}
-                    L${mapT(396)},${mapP(2.152495)}
-                    L${mapT(397)},${mapP(2.220947)}
-                    L${mapT(398)},${mapP(2.291176)}
-                    L${mapT(399)},${mapP(2.363216)}
-                    L${mapT(400)},${mapP(2.437102)}
-                    L${mapT(401)},${mapP(2.512869)}
-                    L${mapT(402)},${mapP(2.590555)}
-                    L${mapT(403)},${mapP(2.670194)}
-                    L${mapT(404)},${mapP(2.751824)}
-                    L${mapT(405)},${mapP(2.835482)}
-                    L${mapT(406)},${mapP(2.921206)}
-                    L${mapT(407)},${mapP(3.009033)}
-                    L${mapT(408)},${mapP(3.099003)}
-                    L${mapT(409)},${mapP(3.191153)}
-                    L${mapT(410)},${mapP(3.285523)}
-                    L${mapT(411)},${mapP(3.382153)}
-                    L${mapT(412)},${mapP(3.481083)}
-                    L${mapT(413)},${mapP(3.582353)}
-                    L${mapT(414)},${mapP(3.686004)}
-                    L${mapT(415)},${mapP(3.792078)}
-                    L${mapT(416)},${mapP(3.900616)}
-                    L${mapT(417)},${mapP(4.01166)}
-                    L${mapT(418)},${mapP(4.125254)}
-                    L${mapT(419)},${mapP(4.241439)}
-                    L${mapT(420)},${mapP(4.36026)}
-                    L${mapT(421)},${mapP(4.48176)}
-                    L${mapT(422)},${mapP(4.605983)}
-                    L${mapT(423)},${mapP(4.732974)}
-                    L${mapT(424)},${mapP(4.862778)}
-                    L${mapT(425)},${mapP(4.99544)}
-                    L${mapT(426)},${mapP(5.131006)}
-                    L${mapT(427)},${mapP(5.269522)}
-                    L${mapT(428)},${mapP(5.411036)}
-                    L${mapT(429)},${mapP(5.555593)}
-                    L${mapT(430)},${mapP(5.703241)}
-                    L${mapT(431)},${mapP(5.854029)}
-                    L${mapT(432)},${mapP(6.008004)}
-                    L${mapT(433)},${mapP(6.165215)}
-                    L${mapT(434)},${mapP(6.32571)}
-                    L${mapT(435)},${mapP(6.48954)}
-                    L${mapT(436)},${mapP(6.656753)}
-                    L${mapT(437)},${mapP(6.827401)}
-                    L${mapT(438)},${mapP(7.001533)}
-                    L${mapT(439)},${mapP(7.179201)}
-                    L${mapT(440)},${mapP(7.360455)}
-                    L${mapT(441)},${mapP(7.545348)}
-                    L${mapT(442)},${mapP(7.733932)}
-                    L${mapT(443)},${mapP(7.926258)}
-                    L${mapT(444)},${mapP(8.12238)}
-                    L${mapT(445)},${mapP(8.322351)}
-                    L${mapT(446)},${mapP(8.526224)}
-                    L${mapT(447)},${mapP(8.734053)}
-                    L${mapT(448)},${mapP(8.945893)}
-                    L${mapT(449)},${mapP(9.161797)}
-                    L${mapT(450)},${mapP(9.381822)}
-                    L${mapT(451)},${mapP(9.606022)}
-                    L${mapT(452)},${mapP(9.834454)}
-                    L${mapT(453)},${mapP(10.067172)}
-                    L${mapT(454)},${mapP(10.304234)}
-                    L${mapT(455)},${mapP(10.545695)}
-                    L${mapT(456)},${mapP(10.791614)}
-                    L${mapT(457)},${mapP(11.042048)}
-                    L${mapT(458)},${mapP(11.297054)}
-                    L${mapT(459)},${mapP(11.556691)}
-                    L${mapT(460)},${mapP(11.821016)}
-                    L${mapT(461)},${mapP(12.090089)}
-                    L${mapT(462)},${mapP(12.363968)}
-                    L${mapT(463)},${mapP(12.642714)}
-                    L${mapT(464)},${mapP(12.926385)}
-                    L${mapT(465)},${mapP(13.215042)}
-                    L${mapT(466)},${mapP(13.508745)}
-                    L${mapT(467)},${mapP(13.807555)}
-                    L${mapT(468)},${mapP(14.111533)}
-                    L${mapT(469)},${mapP(14.42074)}
-                    L${mapT(470)},${mapP(14.735237)}
-                    L${mapT(471)},${mapP(15.055087)}
-                    L${mapT(472)},${mapP(15.380351)}
-                    L${mapT(473)},${mapP(15.711093)}
-                    L${mapT(474)},${mapP(16.047374)}
-                    L${mapT(475)},${mapP(16.389258)}
-                    L${mapT(476)},${mapP(16.736809)}
-                    L${mapT(477)},${mapP(17.090089)}
-                    L${mapT(478)},${mapP(17.449163)}
-                    L${mapT(479)},${mapP(17.814095)}
-                    L${mapT(480)},${mapP(18.184949)}
-                    L${mapT(481)},${mapP(18.56179)}
-                    L${mapT(482)},${mapP(18.944683)}
-                    L${mapT(483)},${mapP(19.333693)}
-                    L${mapT(484)},${mapP(19.728886)}
-                    L${mapT(485)},${mapP(20.130327)}
-                    L${mapT(486)},${mapP(20.538082)}
-                    L${mapT(487)},${mapP(20.952218)}
-                    L${mapT(488)},${mapP(21.372801)}
-                    L${mapT(489)},${mapP(21.799898)}
-                    L${mapT(490)},${mapP(22.233575)}
-                    L${mapT(491)},${mapP(22.6739)}
-                    L${mapT(492)},${mapP(23.120941)}
-                    L${mapT(493)},${mapP(23.574764)}
-                    L${mapT(494)},${mapP(24.035439)}
-                    L${mapT(495)},${mapP(24.503032)}
-                    L${mapT(496)},${mapP(24.977612)}
-                    L${mapT(497)},${mapP(25.459247)}
-                    L${mapT(498)},${mapP(25.948008)}
-                    L${mapT(499)},${mapP(26.443961)}
-                    L${mapT(500)},${mapP(26.947177)}
-                    L${mapT(501)},${mapP(27.457724)}
-                    L${mapT(502)},${mapP(27.975672)}
-                    L${mapT(503)},${mapP(28.501092)}
-                    L${mapT(504)},${mapP(29.034052)}
-                    L${mapT(505)},${mapP(29.574623)}
-                    L${mapT(506)},${mapP(30.122874)}
-                    L${mapT(507)},${mapP(30.678878)}
-                    L${mapT(508)},${mapP(31.242703)}
-                    L${mapT(509)},${mapP(31.814421)}
-                    L${mapT(510)},${mapP(32.394103)}
-                    L${mapT(511)},${mapP(32.981819)}
-                    L${mapT(512)},${mapP(33.577642)}
-                    L${mapT(513)},${mapP(34.181642)}
-                    L${mapT(514)},${mapP(34.793891)}
-                    L${mapT(515)},${mapP(35.41446)}
-                    L${mapT(516)},${mapP(36.043422)}
-                    L${mapT(517)},${mapP(36.680848)}
-                    L${mapT(518)},${mapP(37.326811)}
-                    L${mapT(519)},${mapP(37.981382)}
-                    L${mapT(520)},${mapP(38.644634)}
-                    L${mapT(521)},${mapP(39.31664)}
-                    L${mapT(522)},${mapP(39.997472)}
-                    L${mapT(523)},${mapP(40.687202)}
-                    L${mapT(524)},${mapP(41.385905)}
-                    L${mapT(525)},${mapP(42.093651)}
-                    L${mapT(526)},${mapP(42.810516)}
-                    L${mapT(527)},${mapP(43.536571)}
-                    L${mapT(528)},${mapP(44.27189)}
-                    L${mapT(529)},${mapP(45.016546)}
-                    L${mapT(530)},${mapP(45.770613)}
-                    L${mapT(531)},${mapP(46.534163)}
-                    L${mapT(532)},${mapP(47.307272)}
-                    L${mapT(533)},${mapP(48.090012)}
-                    L${mapT(534)},${mapP(48.882457)}
-                    L${mapT(535)},${mapP(49.684681)}
-                    L${mapT(536)},${mapP(50.496758)}
-                    L${mapT(537)},${mapP(51.318762)}
-                    L${mapT(538)},${mapP(52.150766)}
-                    L${mapT(539)},${mapP(52.992845)}
-                    L${mapT(540)},${mapP(53.845073)}
-                    L${mapT(541)},${mapP(54.707524)}
-                    L${mapT(542)},${mapP(55.580272)}
-                    L${mapT(543)},${mapP(56.463392)}
-                    L${mapT(544)},${mapP(57.356957)}
-                    L${mapT(545)},${mapP(58.261043)}
-                    L${mapT(546)},${mapP(59.175723)}
-                    L${mapT(547)},${mapP(60.101072)}
-                    L${mapT(548)},${mapP(61.037164)}
-                    L${mapT(549)},${mapP(61.984074)}
-                    L${mapT(550)},${mapP(62.941876)}
-                    L${mapT(551)},${mapP(63.910644)}
-                    L${mapT(552)},${mapP(64.890454)}
-                    L${mapT(553)},${mapP(65.881379)}
-                    L${mapT(554)},${mapP(66.883494)}
-                    L${mapT(555)},${mapP(67.896874)}
-                    L${mapT(556)},${mapP(68.921593)}
-                    L${mapT(557)},${mapP(69.957725)}
-                    L${mapT(558)},${mapP(71.005345)}
-                    L${mapT(559)},${mapP(72.064528)}
-                    L${mapT(560)},${mapP(73.135347)}
-                    L${mapT(561)},${mapP(74.217878)}
-                    L${mapT(562)},${mapP(75.312194)}
-                    L${mapT(563)},${mapP(76.418371)}
-                    L${mapT(564)},${mapP(77.536482)}
-                    L${mapT(565)},${mapP(78.666601)}
-                    L${mapT(566)},${mapP(79.808804)}
-                    L${mapT(567)},${mapP(80.963164)}
-                    L${mapT(568)},${mapP(82.129755)}
-                    L${mapT(569)},${mapP(83.308652)}
-                    L${mapT(570)},${mapP(84.499928)}
-                    L${mapT(571)},${mapP(85.703659)}
-                    L${mapT(572)},${mapP(86.919917)}
-                    L${mapT(573)},${mapP(88.148777)}
-                    L${mapT(574)},${mapP(89.390312)}
-                    L${mapT(575)},${mapP(90.644597)}
-                    L${mapT(576)},${mapP(91.911705)}
-                    L${mapT(577)},${mapP(93.19171)}
-                    L${mapT(578)},${mapP(94.484685)}
-                    L${mapT(579)},${mapP(95.790705)}
-                    L${mapT(580)},${mapP(97.109842)}
-                    L${mapT(581)},${mapP(98.442169)}
-                    L${mapT(582)},${mapP(99.787761)}
-                    L${mapT(583)},${mapP(101.14669)}
-                    L${mapT(584)},${mapP(102.51903)}
-                    L${mapT(585)},${mapP(103.904853)}
-                    L${mapT(586)},${mapP(105.304232)}
-                    L${mapT(587)},${mapP(106.717241)}
-                    L${mapT(588)},${mapP(108.143951)}
-                    L${mapT(589)},${mapP(109.584436)}
-                    L${mapT(590)},${mapP(111.038769)}
-                    L${mapT(591)},${mapP(112.50702)}
-                    L${mapT(592)},${mapP(113.989264)}
-                    L${mapT(593)},${mapP(115.485571)}
-                    L${mapT(594)},${mapP(116.996015)}
-                    L${mapT(595)},${mapP(118.520666)}
-                    L${mapT(596)},${mapP(120.059597)}
-                    L${mapT(597)},${mapP(121.61288)}
-                    L${mapT(598)},${mapP(123.180585)}
-                    L${mapT(599)},${mapP(124.762785)}
-                    L${mapT(600)},${mapP(126.359551)}
-                    L${mapT(601)},${mapP(127.970954)}
-                    L${mapT(602)},${mapP(129.597064)}
-                    L${mapT(603)},${mapP(131.237954)}
-                    L${mapT(604)},${mapP(132.893692)}
-                    L${mapT(605)},${mapP(134.564351)}
-                    L${mapT(606)},${mapP(136.250001)}
-                    L${mapT(607)},${mapP(137.950711)}
-                    L${mapT(608)},${mapP(139.666553)}
-                    L${mapT(609)},${mapP(141.397595)}
-                    L${mapT(610)},${mapP(143.143908)}
-                    L${mapT(611)},${mapP(144.905562)}
-                    L${mapT(612)},${mapP(146.682625)}
-                    L${mapT(613)},${mapP(148.475168)}
-                    L${mapT(614)},${mapP(150.283259)}
-                    L${mapT(615)},${mapP(152.106968)}
-                    L${mapT(616)},${mapP(153.946363)}
-                    L${mapT(617)},${mapP(155.801513)}
-                    L${mapT(618)},${mapP(157.672487)}
-                    L${mapT(619)},${mapP(159.559352)}
-                    L${mapT(620)},${mapP(161.462177)}
-                    L${mapT(621)},${mapP(163.38103)}
-                    L${mapT(622)},${mapP(165.315978)}
-                    L${mapT(623)},${mapP(167.267089)}
-                    L${mapT(624)},${mapP(169.234431)}
-                    L${mapT(625)},${mapP(171.218071)}
-                    L${mapT(626)},${mapP(173.218075)}
-                    L${mapT(627)},${mapP(175.234511)}
-                    L${mapT(628)},${mapP(177.267445)}
-                    L${mapT(629)},${mapP(179.316943)}
-                    L${mapT(630)},${mapP(181.383072)}
-                    L${mapT(631)},${mapP(183.465898)}
-                    L${mapT(632)},${mapP(185.565487)}
-                    L${mapT(633)},${mapP(187.681903)}
-                    L${mapT(634)},${mapP(189.815213)}
-                    L${mapT(635)},${mapP(191.965482)}
-                    L${mapT(636)},${mapP(194.132774)}
-                    L${mapT(637)},${mapP(196.317155)}
-                    L${mapT(638)},${mapP(198.518688)}
-                    L${mapT(639)},${mapP(200.73744)}
-                    L${mapT(640)},${mapP(202.973472)}
-                    L${mapT(641)},${mapP(205.22685)}
-                    L${mapT(642)},${mapP(207.497636)}
-                    L${mapT(643)},${mapP(209.785896)}
-                    L${mapT(644)},${mapP(212.09169)}
-                    L${mapT(645)},${mapP(214.415084)}
-                    L${mapT(646)},${mapP(216.756139)}
-                    L${mapT(647.096)},${mapP(218.0)}
-
-                    L${mapT(647.096)},${mapP(217.75)}`}
+                    // Create SVG path from sublimation points
+                    if (sublimationPoints.length > 0) {
+                      const pathData = sublimationPoints.map(([T, P], i) => {
+                        const x = mapT(T);
+                        const y = mapP(P);
+                        return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+                      }).join(' ');
+                      return pathData;
+                    }
+                    return '';
+                  })()}
                   stroke={theme.titleText}
-                  strokeWidth="2.2"
+                  strokeWidth="2"
                   fill="none"
-                  opacity="0.9"
+                  opacity="0.8"
                 />
-                {/* Boiling point marker */}
-                <Circle
-                  cx={mapT(373.15)}
-                  cy={mapP(1.00000)}
-                  r="4"
-                  fill={theme.titleText}
-                  opacity={0.9}
-                />
-                <SvgText
-                  x={mapT(373.15) + 8}
-                  y={mapP(0.2) - 8}
-                  fontSize="12"
-                  fill={theme.titleText}
-                  fontWeight="bold"
-                >
-                  Boiling
-                </SvgText>
-                {/* Freezing point marker */}
-                <Circle
-                  cx={mapT(272.25)}
-                  cy={mapP(1)}
-                  r="4"
-                  fill={theme.titleText}
-                  opacity={0.9}
-                />
-                <SvgText
-                  x={mapT(272.25) + 8}
-                  y={mapP(1) - 8}
-                  fontSize="12"
-                  fill={theme.titleText}
-                  fontWeight="bold"
-                >
-                  Freezing
-                </SvgText>
-                {/* Axes */}
-                <Path
-                  d={`M${mapT(minT)},${mapP(0.001)} L${mapT(minT)},${mapP(300)}`}
-                  stroke={theme.titleText}
-                  strokeWidth="2"
-                  opacity={0.9}
-                />
-                <Path
-                  d={`M${mapT(minT)},${mapP(0.001)} L${mapT(maxT)},${mapP(0.001)}`}
-                  stroke={theme.titleText}
-                  strokeWidth="2"
-                  opacity={0.9}
-                />
-                {/* X-axis ticks and labels */}
-                {[200, 300, 400, 500, 600, 700].map((t) => {
-                  const x = mapT(t);
-                  return (
-                    <React.Fragment key={t}>
-                      <Path
-                        d={`M${x},${diagramHeight - 40} L${x},${diagramHeight - 32}`}
-                        stroke={theme.titleText}
-                        strokeWidth="1.3"
-                        opacity={0.6}
-                      />
-                      <SvgText
-                        x={x}
-                        y={diagramHeight - 18}
-                        fontSize="11"
-                        fill={theme.subtitleText}
-                        fontWeight="bold"
-                        textAnchor="middle"
-                        opacity={0.93}
-                      >
-                        {Math.round(kelvinToCelsius(t))}
-                      </SvgText>
-                    </React.Fragment>
-                  );
-                })}
+                
+                {/* Fusion curve (solid-liquid, nearly vertical) - REMOVED */}
+                {/* Vaporization curve (liquid-gas) - using accurate data points - REMOVED */}
+                {/* X-axis ticks and labels - REMOVED */}
+                {/* X-axis minor ticks - REMOVED */}
                 {/* X-axis label */}
                 <SvgText
-                  x={diagramWidth / 2}
-                  y={diagramHeight - 5}
-                  fontSize="13"
+                  x={currentDiagramWidth / 2}
+                  y={currentDiagramHeight - 5}
+                  fontSize={fontSubtitle}
                   fill={theme.subtitleText}
                   fontWeight="bold"
                   textAnchor="middle"
@@ -2459,7 +2895,7 @@ export default function DiagramScreen() {
                       <SvgText
                         x={38}
                         y={y + 4}
-                        fontSize="11"
+                        fontSize={fontSlider}
                         fill={theme.subtitleText}
                         fontWeight="bold"
                         textAnchor="end"
@@ -2473,106 +2909,283 @@ export default function DiagramScreen() {
                 {/* Y-axis label */}
                 <SvgText
                   x={10}
-                  y={diagramHeight / 2}
-                  fontSize="13"
+                  y={currentDiagramHeight / 2}
+                  fontSize={fontSubtitle}
                   fill={theme.subtitleText}
                   fontWeight="bold"
                   textAnchor="middle"
                   opacity={0.94}
-                  transform={`rotate(-90 10,${diagramHeight / 2})`}
+                  transform={`rotate(-90 10,${currentDiagramHeight / 2})`}
                 >
                   PRESSURE (atm)
                 </SvgText>
-                {/* Interactive point */}
-                <Circle
-                  cx={mapT(temperature)}
-                  cy={mapP(pressure)}
-                  r="6"
-                  fill="#00FFE5"
+                {/* Interactive point - REMOVED */}
+                {/* Triple point */}
+                
+                {/* Critical point */}
+                
+                {/* First temperature tick */}
+                <Path
+                  d={`M${mapT(273.15)},${currentDiagramHeight - 40} L${mapT(273.15)},${currentDiagramHeight - 32}`}
                   stroke={theme.titleText}
-                  strokeWidth="2"
-                  opacity={0.95}
+                  strokeWidth="1.3"
+                  opacity={0.6}
                 />
+                <SvgText
+                  x={mapT(273.15)}
+                  y={currentDiagramHeight - 18}
+                  fontSize={fontSlider}
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  opacity={0.93}
+                >
+                  0
+                </SvgText>
+                
+                {/* Second temperature tick - moved to actual 100°C position in stretched scale */}
+                <Path
+                  d={`M${mapT(373.15)},${currentDiagramHeight - 40} L${mapT(373.15)},${currentDiagramHeight - 32}`}
+                  stroke={theme.titleText}
+                  strokeWidth="1.3"
+                  opacity={0.6}
+                />
+                <SvgText
+                  x={mapT(373.15)}
+                  y={currentDiagramHeight - 18}
+                  fontSize={fontSlider}
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  opacity={0.93}
+                >
+                  100
+                </SvgText>
+                
+                {/* Third temperature tick - critical point */}
+                <Path
+                  d={`M${mapT(647.096)},${currentDiagramHeight - 40} L${mapT(647.096)},${currentDiagramHeight - 32}`}
+                  stroke={theme.titleText}
+                  strokeWidth="1.3"
+                  opacity={0.6}
+                />
+                <SvgText
+                  x={mapT(647.096)}
+                  y={currentDiagramHeight - 18}
+                  fontSize={fontSlider}
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  opacity={0.93}
+                >
+                  374
+                </SvgText>
+                {/* Critical point dot */}
+                <Circle
+                  cx={mapT(647.096)}
+                  cy={mapP(218.0)}
+                  r="4"
+                  fill={theme.titleText}
+                  opacity="0.9"
+                />
+                {/* Critical point label */}
+                <SvgText
+                  x={mapT(647.096)}
+                  y={mapP(218.0) + 20}
+                  fontSize={fontSlider}
+                  fill={theme.titleText}
+                  fontWeight="bold"
+                  opacity="0.9"
+                >
+                  Critical Point
+                </SvgText>
+                <SvgText
+                  x={mapT(647.096)}
+                  y={mapP(218.0) + 32}
+                  fontSize={fontWarning}
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  opacity="0.8"
+                >
+                  (374°C, 218 atm)
+                </SvgText>
+                
+                {/* Fourth temperature tick (maximum) */}
+                <Path
+                  d={`M${mapT(700)},${currentDiagramHeight - 40} L${mapT(700)},${currentDiagramHeight - 32}`}
+                  stroke={theme.titleText}
+                  strokeWidth="1.3"
+                  opacity={0.6}
+                />
+                <SvgText
+                  x={mapT(700)}
+                  y={currentDiagramHeight - 18}
+                  fontSize={fontSlider}
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  opacity={0.93}
+                >
+                  427
+                </SvgText>
+                
                 {/* Triple point */}
                 <Circle
                   cx={mapT(273.16)}
-                  cy={mapP(0.00604)}
-                  r="5"
+                  cy={mapP(0.006)}
+                  r="4"
                   fill={theme.titleText}
-                  opacity={0.9}
-                />
-                <SvgText
-                  x={mapT(273.16) + 8}
-                  y={mapP(0.00404)}
-                  fontSize="12"
-                  fill={theme.titleText}
-                  fontWeight="bold"
-                >
-                  Triple
-                </SvgText>
-                {/* Critical point */}
-                <Circle
-                  cx={mapT(647.096)}
-                  cy={mapP(217.75)}
-                  r="5"
-                  fill={theme.titleText}
-                  opacity={0.9}
-                />
-                <SvgText
-                  x={mapT(647.096) - 10}
-                  y={mapP(98.75) - 10}
-                  fontSize="12"
-                  fill={theme.titleText}
-                  fontWeight="bold"
-                >
-                  Critical
-                </SvgText>
-                {/* Phase labels */}
-                <SvgText
-                  x={mapT(205)}
-                  y={mapP(0.07)}
-                  fontSize="15"
-                  fill={theme.subtitleText}
-                  fontWeight="bold"
-                  opacity={0.94}
-                >
-                  Solid
-                </SvgText>
-                <SvgText
-                  x={mapT(350)}
-                  y={mapP(170)}
-                  fontSize="15"
-                  fill={theme.subtitleText}
-                  fontWeight="bold"
-                  opacity={0.94}
-                >
-                  Liquid
-                </SvgText>
-                <SvgText
-                  x={mapT(550)}
-                  y={mapP(0.1)}
-                  fontSize="15"
-                  fill={theme.subtitleText}
-                  fontWeight="bold"
-                  opacity={0.94}
-                >
-                  Gas
-                </SvgText>
-                {/* Fusion curve (solid-liquid boundary) - using accurate data points */}
-                <Path
-                  d={`M${mapT(273.16)},${mapP(0.006117)}
-                    L${mapT(273.14)},${mapP(0.01)}
-                    L${mapT(273.00)},${mapP(0.1)}
-                    L${mapT(272.25)},${mapP(1)}
-                    L${mapT(270.2)},${mapP(10)}
-                    L${mapT(252.0)},${mapP(100)}
-                    L${mapT(240.0)},${mapP(200)}
-                    L${mapT(230.0)},${mapP(300)}`}
-                  stroke={theme.titleText}
-                  strokeWidth="2.2"
-                  fill="none"
                   opacity="0.9"
                 />
+                
+                {/* Boiling point */}
+                <Circle
+                  cx={mapT(373.15)}
+                  cy={mapP(1)}
+                  r="4"
+                  fill={theme.titleText}
+                  opacity="0.9"
+                />
+                
+                {/* Freezing point (0°C, 1 atm) */}
+                <Circle
+                  cx={mapT(273.15)}
+                  cy={mapP(1)}
+                  r="4"
+                  fill={theme.titleText}
+                  opacity="0.9"
+                />
+                
+                {/* Lines connecting the three points */}
+                <Path
+                  d={`M${mapT(minT)},${mapP(minP)} Q${mapT(250)},${mapP(0.003)} ${mapT(273.16)},${mapP(0.006117)} Q${mapT(350)},${mapP(0.4)} ${mapT(373.15)},${mapP(1)} Q${mapT(580)},${mapP(30)} ${mapT(647.096)},${mapP(218.0)}`}
+                  stroke={theme.titleText}
+                  strokeWidth="2"
+                  fill="none"
+                  opacity="0.8"
+                />
+
+                {/* Fusion curve (Solid-Liquid) */}
+                <Path
+                  d={`M${mapT(273.16)},${mapP(0.006117)} L${mapT(273.15)},${mapP(1)} L${mapT(273.14)},${mapP(10)} L${mapT(273.13)},${mapP(50)} L${mapT(273.12)},${mapP(100)} L${mapT(273.11)},${mapP(130)} L${mapT(273.10)},${mapP(150)} L${mapT(273.09)},${mapP(200)} L${mapT(273.08)},${mapP(250)} L${mapT(273.07)},${mapP(300)}`}
+                  stroke={theme.titleText}
+                  strokeWidth="2"
+                  fill="none"
+                  opacity="0.8"
+                />
+                
+                {/* Dotted line: Liquid to Supercritical boundary */}
+                <Path
+                  d={`M${mapT(647.096)},${mapP(218.0)} L${mapT(647.096)},${mapP(maxP)}`}
+                  stroke={theme.titleText}
+                  strokeWidth="2"
+                  strokeDasharray="5,5"
+                  fill="none"
+                  opacity="0.6"
+                />
+                
+                {/* Dotted line: Gas to Supercritical boundary */}
+                <Path
+                  d={`M${mapT(647.096)},${mapP(218.0)} L${mapT(maxT)},${mapP(218.0)}`}
+                  stroke={theme.titleText}
+                  strokeWidth="2"
+                  strokeDasharray="5,5"
+                  fill="none"
+                  opacity="0.6"
+                />
+                
+                {/* Dynamic coordinate point */}
+                <Circle
+                  cx={phasePoint.x}
+                  cy={phasePoint.y}
+                  r="6"
+                  fill={phaseColors[phase]}
+                  stroke={theme.titleText}
+                  strokeWidth="2"
+                  opacity="0.9"
+                />
+                
+                {/* Coordinate point highlight */}
+                <Circle
+                  cx={phasePoint.x}
+                  cy={phasePoint.y}
+                  r="3"
+                  fill={theme.titleText}
+                  opacity="0.8"
+                />
+                
+                {/* Point labels */}
+                {/* Triple point label */}
+                <SvgText
+                  x={mapT(273.16) + 5}
+                  y={mapP(0.006) - 12}
+                  fontSize="10"
+                  fill={theme.titleText}
+                  fontWeight="bold"
+                  opacity="0.9"
+                  transform={`rotate(-27 ${mapT(273.15) - 25}, ${mapP(1) - 15})`}
+                >
+                  Triple Point
+                </SvgText>
+                <SvgText
+                  x={mapT(273.16) - 10}
+                  y={mapP(0.006) - 1} 
+                  fontSize="9"
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  opacity="0.8"
+                  transform={`rotate(-27 ${mapT(273.15) - 25}, ${mapP(1) - 15})`}
+                >
+                  (0.01°C, 0.006 atm)
+                </SvgText>
+                
+                {/* Boiling point label */}
+                <SvgText
+                  x={mapT(373.15) + 15}
+                  y={mapP(0.850) - 8}
+                  fontSize="10"
+                  fill={theme.titleText}
+                  fontWeight="bold"
+                  opacity="0.9"
+                >
+                  Boiling Point
+                </SvgText>
+                <SvgText
+                  x={mapT(373.15) + 15}
+                  y={mapP(0.850) + 4}
+                  fontSize="9"
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  opacity="0.8"
+                >
+                  (100°C, 1 atm)
+                </SvgText>
+                
+                {/* Freezing point label */}
+                <SvgText
+                  x={mapT(273.15) - 5}
+                  y={mapP(1) - 10}
+                  fontSize="10"
+                  fill={theme.titleText}
+                  fontWeight="bold"
+                  opacity="0.9"
+                  textAnchor="end"
+                  transform={`rotate(-90 ${mapT(273.15) - 25}, ${mapP(1) - 15})`}
+                >
+                  Freezing Point
+                </SvgText>
+                <SvgText
+                  x={mapT(273.15) - 5}
+                  y={mapP(2) + 15}
+                  fontSize="9"
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  opacity="0.8"
+                  textAnchor="end"
+                  transform={`rotate(-90 ${mapT(273.15) - 25}, ${mapP(1) - 3})`}
+                >
+                  (0°C, 1 atm)
+                </SvgText>
               </Svg>
             </View>
 
@@ -2587,50 +3200,108 @@ export default function DiagramScreen() {
                 fontSize: fontSlider,
               }]}>TEMPERATURE</Text>
               <Slider
-                style={{ width: Math.max(140, diagramWidth - 100) }}
-                minimumValue={minT}
-                maximumValue={maxT}
-                value={temperature}
-                onValueChange={setTemperature}
+                style={{ width: Math.max(140, currentDiagramWidth - 100) }}
+                minimumValue={getStretchedTemperature(minT)}
+                maximumValue={getStretchedTemperature(maxT)}
+                value={getStretchedTemperature(temperature)} // Use stretched temperature
+                onValueChange={(stretchedValue) => {
+                  // Convert stretched value back to actual temperature
+                  const actualTemp = getActualTemperature(stretchedValue);
+                  setTemperature(actualTemp);
+                  setLastControlUsed('temperature'); // Track that temperature control was used
+                  
+                  if (isLinked) {
+                    // Check for starting point behavior first
+                    const startingPointResult = handleStartingPointBehavior(actualTemp, 'temperature');
+                    
+                    if (startingPointResult) {
+                      // Use starting point behavior
+                      setTemperature(startingPointResult.newTemperature);
+                      setPressure(startingPointResult.newPressure);
+                      setPressureSliderValue(pressureToLogSlider(startingPointResult.newPressure));
+                    } else {
+                      // Use normal boundary logic
+                      let boundaryPressureChange = getBoundaryPressure(actualTemp, 'temperature');
+                      // Clamp pressure to valid range
+                      boundaryPressureChange = Math.max(minP, Math.min(maxP, boundaryPressureChange));
+                      setPressure(boundaryPressureChange);
+                      setPressureSliderValue(pressureToLogSlider(boundaryPressureChange));
+                    }
+                  }
+                }}
+                onSlidingComplete={(stretchedValue) => {
+                    const actualTemp = getActualTemperature(stretchedValue);
+                  setLastControlUsed('temperature'); // Track that temperature control was used
+                  
+                  if (isLinked) {
+                    // Check for starting point behavior first
+                    const startingPointResult = handleStartingPointBehavior(actualTemp, 'temperature');
+                    
+                    if (startingPointResult) {
+                      // Use starting point behavior
+                      setTemperature(startingPointResult.newTemperature);
+                      setPressure(startingPointResult.newPressure);
+                      setPressureSliderValue(pressureToLogSlider(startingPointResult.newPressure));
+                    } else {
+                      // Use normal boundary logic
+                      if (startingDirection === 'temperature') {
+                        // Follow vaporization curve (horizontal)
+                        let boundaryPressureComplete = getVisualCurvePressure(actualTemp);
+                        boundaryPressureComplete = Math.max(minP, Math.min(maxP, boundaryPressureComplete));
+                        setPressure(boundaryPressureComplete);
+                        setPressureSliderValue(pressureToLogSlider(boundaryPressureComplete));
+                      } else {
+                        // Follow fusion curve (nearly vertical) - default for temperature control
+                        let boundaryPressureComplete = getBoundaryPressure(actualTemp, 'temperature');
+                        boundaryPressureComplete = Math.max(minP, Math.min(maxP, boundaryPressureComplete));
+                        setPressure(boundaryPressureComplete);
+                        setPressureSliderValue(pressureToLogSlider(boundaryPressureComplete));
+                      }
+                    }
+                  }
+                  // The temperature is already correctly set in onValueChange
+                }}
                 minimumTrackTintColor="#4a90e2"
                 maximumTrackTintColor={theme.isDarkTheme ? theme.cardBackground : '#1976D2'}
                 thumbTintColor="#e55"
                 thumbStyle={{ width: 32, height: 32 }}
+                step={0.1} // Smaller step for smoother movement
               />
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[
                     styles.valueInput,
                     { 
-                      color: tempWarning ? "#ff4444" : "#e55",
-                      borderColor: tempWarning ? "#ff4444" : theme.borderColor,
+                      color: "#e55",
+                      borderColor: theme.borderColor,
                       backgroundColor: theme.cardBackground,
                     }
                   ]}
-                  value={tempInput}
+                  value={Math.round(kelvinToCelsius(temperature)).toString()}
                   onChangeText={handleTempChange}
                   keyboardType="decimal-pad"
                   selectTextOnFocus
                   maxLength={7}
                   placeholder="0"
-                  placeholderTextColor="#e5580"
+                  placeholderTextColor="#e55"
                 />
-                <Text style={[styles.inputUnit, { color: tempWarning ? "#ff4444" : "#e55" }]}> °C</Text>
+                <Text style={[styles.inputUnit, { color: "#e55" }]}> °C</Text>
               </View>
-              {tempWarning && (
+              {/* {tempWarning && (
                 <Text style={styles.warningText}>
                   Max: 427 °C
                 </Text>
-              )}
+              )} */}
             </View>
           </View>
 
           {/* Right: Molecule Sims and Phase Label */}
-          <View style={[styles.rightPanel, { paddingHorizontal: rightPanelPadding }]}>
+          <View style={[styles.rightPanel, { paddingHorizontal: currentRightPanelPadding }]}>
             <View style={[styles.phaseContainer, { 
               backgroundColor: theme.cardBackground,
               borderColor: theme.borderColor,
               shadowColor: theme.shadowColor,
+              marginTop: hp('4'),
             }]}>
               <Text
                 style={[
@@ -2643,14 +3314,14 @@ export default function DiagramScreen() {
                 PHASE
               </Text>
               <View style={[styles.phaseValueContainer, {
-                backgroundColor: phaseColors[phase === "Supercritical" ? "Gas" : phase] + '20',
-                borderColor: phaseColors[phase === "Supercritical" ? "Gas" : phase],
+                backgroundColor: phaseColors[phase === "Supercritical" || phase === "Critical" ? "Gas" : phase] + '20',
+                borderColor: phaseColors[phase === "Supercritical" || phase === "Critical" ? "Gas" : phase],
               }]}>
                 <Text
                   style={[
                     styles.phaseValueNew,
                     {
-                      color: phaseColors[phase === "Supercritical" ? "Gas" : phase],
+                      color: phaseColors[phase === "Supercritical" || phase === "Critical" ? "Gas" : phase],
                     },
                   ]}
                 >
@@ -2661,25 +3332,33 @@ export default function DiagramScreen() {
             <View style={[styles.moleculeCircle, { 
               backgroundColor: theme.cardBackground,
               shadowColor: theme.shadowColor,
-              elevation: 4,
+              elevation: elevation,
               borderColor: theme.borderColor,
+              width: moleculeSize,
+              height: moleculeSize,
+              borderRadius: moleculeSize / 2,
+              marginBottom: moleculeMargin,
             }]}>
               <MoleculeSim
-                phase={phase === "Supercritical" ? "Gas" : phase}
-                width={70}
-                height={70}
+                phase={phase === "Supercritical" || phase === "Critical" ? "Gas" : phase}
+                width={moleculeSize}
+                height={moleculeSize}
               />
             </View>
             <View style={[styles.moleculeCircle, { 
               backgroundColor: theme.cardBackground,
               shadowColor: theme.shadowColor,
-              elevation: 4,
+              elevation: elevation,
               borderColor: theme.borderColor,
+              width: moleculeSize,
+              height: moleculeSize,
+              borderRadius: moleculeSize / 2,
+              marginBottom: moleculeMargin,
             }]}>
               <PhaseTransitionSim
-                phase={phase === "Supercritical" ? "gas" : phase.toLowerCase()}
-                width={70}
-                height={70}
+                phase={phase === "Supercritical" || phase === "Critical" ? "gas" : phase.toLowerCase()}
+                width={"100%"}
+                height={"100%"}
               />
             </View>
           </View>
@@ -2696,8 +3375,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
+    marginTop: hp('1.5'),
+    fontSize: fontSubtitle,
     fontWeight: "bold",
   },
   root: {
@@ -2708,39 +3387,45 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   sidebar: {
-    width: 110,
     alignItems: "center",
-    paddingTop: 32,
+    paddingTop: sidebarPadding,
     borderRightWidth: 2,
     shadowOpacity: 0.1,
-    shadowRadius: 7,
+    shadowRadius: shadowRadius,
+    overflow: 'hidden',
+    justifyContent: 'flex-start',
+    paddingBottom: hp('2'),
   },
   sidebarLandscape: {
-    width: 110,
+    // Width is set dynamically in component
   },
   logo: {
-    width: 62,
-    height: 62,
-    marginBottom: 12,
-    borderRadius: 18,
+    marginBottom: hp('1.5'),
+    borderRadius: borderRadius,
     borderWidth: 2,
   },
-  thermometerContainer: { marginTop: 26, marginBottom: 12 },
+  thermometerContainer: { 
+    marginTop: hp('2'), 
+    marginBottom: hp('1'), 
+    marginLeft: wp('3'),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: {
     flex: 1,
     flexDirection: "column",
-    padding: 6,
+    padding: contentPadding,
     position: "relative",
   },
   headerRowNew: {
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 5,
-    marginBottom: 5,
+    marginTop: headerMargin,
+    marginBottom: headerMargin,
   },
   titleNew: {
-    fontSize: 28,
+    fontSize: fontTitle,
     fontWeight: "bold",
     letterSpacing: 1.2,
     textShadowOffset: { width: 1.5, height: 1.5 },
@@ -2750,204 +3435,209 @@ const styles = StyleSheet.create({
   mainDisplayArea: {
     flex: 1,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    paddingHorizontal: 4,
+    paddingHorizontal: mainPadding,
   },
   pressureControlContainer: {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: mainPadding,
+    borderRadius: borderRadius,
+    borderWidth: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: shadowRadius,
+    paddingVertical: contentPadding,
   },
   verticalSliderWrapper: {
-    width: 45,
+    width: wp('12'),
     justifyContent: "center",
     alignItems: "center",
-    marginVertical: 8,
+    marginVertical: sliderMargin,
   },
   verticalSlider: {
-    height: 50,
+    height: hp('6'),
     transform: [{ rotate: "-90deg" }],
   },
   sliderLabelVertical: {
-    fontSize: 15,
+    fontSize: fontSlider,
     fontWeight: "bold",
     letterSpacing: 0.5,
-    transform: [{ rotate: "-90deg" }],
-    position: "absolute",
-    left: -24,
+    marginBottom: hp('1'),
+    textAlign: "center",
   },
   centerColumn: {
     flex: 1,
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
+    paddingHorizontal: centerPadding,
   },
   diagramContainerNew: {
-    borderRadius: 16,
+    borderRadius: borderRadius,
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
     borderWidth: 2,
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    paddingVertical: 4,
+    shadowRadius: shadowRadius,
+    paddingVertical: contentPadding,
   },
   diagramSvg: {
     backgroundColor: "transparent",
-    borderRadius: 20,
+    borderRadius: borderRadius,
   },
   rightPanel: {
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 8,
-    minWidth: 90,
+    justifyContent: "flex-end",
+    paddingHorizontal: rightPanelPadding,
+    minWidth: rightPanelMinWidth,
+    paddingBottom: hp('6'),
   },
   sliderContainerNew: {
     width: "100%",
-    marginBottom: 2,
+    marginBottom: sliderMargin,
     alignItems: "center",
-    paddingVertical: 2,
-    borderRadius: 14,
-    marginTop: 2,
+    paddingVertical: contentPadding,
+    borderRadius: borderRadius,
+    marginTop: sliderMargin,
     borderWidth: 2,
   },
   sliderLabel: {
-    fontSize: 15,
+    fontSize: fontSlider,
     fontWeight: "bold",
-    marginBottom: 2,
+    marginBottom: sliderMargin,
     letterSpacing: 0.5,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
-    marginBottom: 4,
-    width: 120, // Fixed width
-    height: 30, // Fixed height
+    marginTop: inputMargin,
+    marginBottom: inputMargin,
+    width: inputWidth,
+    height: inputHeight,
   },
   valueInput: {
-    fontSize: 15,
+    fontSize: fontInput,
     fontWeight: 'bold',
     textAlign: 'center',
-    width: 85, // Fixed width instead of minWidth
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    width: inputWidth * 0.7,
+    paddingHorizontal: wp('2'),
+    paddingVertical: hp('0.5'),
+    borderRadius: borderRadius,
     borderWidth: 1,
   },
   inputUnit: {
-    fontSize: 15,
+    fontSize: fontInput,
     fontWeight: 'bold',
-    marginLeft: 4,
+    marginLeft: wp('1'),
   },
   phaseLabelNew: {
-    fontSize: 19,
+    fontSize: fontPhaseLabel,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: phaseMargin,
     letterSpacing: 0.7,
     textShadowOffset: { width: 0.5, height: 0.5 },
     textShadowRadius: 1,
     textAlign: "center",
   },
   phaseValueNew: {
-    fontSize: 19,
+    fontSize: fontPhaseValue,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: phaseMargin,
     letterSpacing: 0.7,
     textShadowOffset: { width: 0.5, height: 0.5 },
     textShadowRadius: 1,
     textAlign: "center",
   },
   moleculeCircle: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
+    width: moleculeSize,
+    height: moleculeSize,
+    borderRadius: moleculeSize / 2,
     alignItems: "center",
     justifyContent: "center",
     shadowOpacity: 0.13,
-    shadowRadius: 8,
+    shadowRadius: shadowRadius,
     borderWidth: 2,
-    marginBottom: 12,
+    marginBottom: moleculeMargin,
   },
   warningText: {
     color: "#ff4444",
-    fontSize: 12,
+    fontSize: fontWarning,
     fontWeight: "bold",
-    marginTop: 2,
+    marginTop: inputMargin,
     textAlign: "center",
     opacity: 0.9,
   },
   homeButtonNew: {
     position: "absolute",
-    right: 13,
-    bottom: 13,
-    width: 38,
-    height: 38,
-    borderRadius: 20,
+    right: wp('3'),
+    bottom: hp('2'),
+    width: helpButtonSize,
+    height: helpButtonSize,
+    borderRadius: helpButtonSize / 2,
     alignItems: "center",
     justifyContent: "center",
     shadowOpacity: 0.09,
-    shadowRadius: 3,
+    shadowRadius: shadowRadius,
     zIndex: 10,
     borderWidth: 2,
   },
   backButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 40 : 20,
-    right: 20,
+    top: backButtonTop,
+    right: backButtonRight,
     zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    padding: wp('2'),
+    paddingHorizontal: wp('3'),
+    borderRadius: borderRadius,
     borderWidth: 2,
     borderBottomWidth: 4,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: shadowRadius,
   },
   backButtonText: {
-    fontSize: 16,
+    fontSize: fontBackButton,
     fontWeight: "700",
-    marginRight: 6,
+    marginRight: wp('1.5'),
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
   },
   phaseContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: contentPadding,
+    paddingHorizontal: wp('2'),
     borderWidth: 1,
-    borderRadius: 14,
-    marginBottom: 12,
+    borderRadius: borderRadius,
+    marginBottom: moleculeMargin,
   },
   phaseValueContainer: {
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    paddingHorizontal: wp('1'),
+    paddingVertical: hp('0.2'),
     borderWidth: 2,
-    borderRadius: 6,
+    borderRadius: borderRadius,
   },
   helpButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 20,
+    width: helpButtonSize,
+    height: helpButtonSize,
+    borderRadius: helpButtonSize / 2,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: moleculeMargin,
+    marginBottom: moleculeMargin,
     shadowOpacity: 0.09,
-    shadowRadius: 3,
+    shadowRadius: shadowRadius,
     borderWidth: 2,
-    elevation: 3,
+    elevation: elevation,
   },
   helpButtonText: {
-    fontSize: 20,
+    fontSize: fontHelpButton,
     fontWeight: "bold",
   },
   modalOverlay: {
@@ -2955,46 +3645,46 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 1)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 30,
+    padding: wp('8'),
   },
   modalContent: {
-    width: 500,
-    maxHeight: 400,
-    padding: 28,
-    borderRadius: 20,
+    width: wp('80'),
+    maxHeight: hp('60'),
+    padding: wp('7'),
+    borderRadius: borderRadius,
     alignItems: 'center',
     borderWidth: 2,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowRadius: shadowRadius,
+    elevation: elevation,
   },
   modalHeader: {
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: hp('2'),
   },
   modalTitle: {
-    fontSize: 26,
+    fontSize: fontTitle,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: wp('11'),
+    height: wp('11'),
+    borderRadius: wp('5.5'),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: shadowRadius,
+    elevation: elevation,
   },
   closeButtonText: {
-    fontSize: 24,
+    fontSize: fontHelpButton,
     fontWeight: 'bold',
   },
   modalBody: {
@@ -3002,40 +3692,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   helpText: {
-    fontSize: 16,
-    marginBottom: 12,
+    fontSize: fontSubtitle,
+    marginBottom: hp('1.5'),
     textAlign: 'left',
-    lineHeight: 22,
+    lineHeight: hp('2.8'),
   },
   helpSection: {
-    marginBottom: 20,
+    marginBottom: hp('2.5'),
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: fontPhase,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: hp('1.2'),
   },
   colorLegend: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginTop: 10,
+    marginTop: hp('1.2'),
   },
   colorItem: {
     alignItems: 'center',
     flex: 1,
   },
   colorBox: {
-    width: 24,
-    height: 24,
-    marginBottom: 8,
+    width: wp('6'),
+    height: wp('6'),
+    marginBottom: hp('1'),
     borderWidth: 2,
-    borderRadius: 6,
+    borderRadius: borderRadius,
     borderColor: '#333',
   },
   colorText: {
-    fontSize: 13,
+    fontSize: fontSlider,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  linkButton: {
+    width: linkButtonSize,
+    height: linkButtonSize,
+    borderRadius: linkButtonSize / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: moleculeMargin,
+    marginBottom: moleculeMargin,
+    shadowOpacity: 0.09,
+    shadowRadius: shadowRadius,
+    borderWidth: 2,
+    elevation: elevation,
+  },
+  linkLabel: {
+    fontSize: fontLinkLabel,
+    fontWeight: "bold",
+    marginTop: hp('0.5'),
+    marginBottom: hp('1'),
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
 });

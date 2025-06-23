@@ -11,6 +11,7 @@ export const AudioProvider = ({ children }) => {
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [sfxVolume, setSfxVolume] = useState(0.5);
   const [appState, setAppState] = useState(AppState.currentState);
+  const [wasPlayingBeforeBackground, setWasPlayingBeforeBackground] = useState(false);
 
   // Handle app state changes
   useEffect(() => {
@@ -18,14 +19,15 @@ export const AudioProvider = ({ children }) => {
     return () => {
       subscription.remove();
     };
-  }, [bgMusic]);
+  }, [bgMusic, wasPlayingBeforeBackground]);
 
   const handleAppStateChange = async (nextAppState) => {
     if (appState.match(/inactive|background/) && nextAppState === 'active') {
       // App has come to the foreground
-      if (bgMusic) {
+      if (bgMusic && wasPlayingBeforeBackground) {
         try {
           await bgMusic.playAsync();
+          console.log('BGM resumed from background');
         } catch (error) {
           console.log('Error resuming BGM:', error);
         }
@@ -34,7 +36,14 @@ export const AudioProvider = ({ children }) => {
       // App has gone to the background
       if (bgMusic) {
         try {
-          await bgMusic.pauseAsync();
+          const status = await bgMusic.getStatusAsync();
+          if (status.isLoaded && status.isPlaying) {
+            setWasPlayingBeforeBackground(true);
+            await bgMusic.pauseAsync();
+            console.log('BGM paused due to background');
+          } else {
+            setWasPlayingBeforeBackground(false);
+          }
         } catch (error) {
           console.log('Error pausing BGM:', error);
         }
@@ -52,7 +61,7 @@ export const AudioProvider = ({ children }) => {
         // Set up audio mode
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
-          staysActiveInBackground: false, // Changed to false to stop music when app is in background
+          staysActiveInBackground: false, // Keep false to pause when in background
           shouldDuckAndroid: true,
         });
 
@@ -184,8 +193,34 @@ export const AudioProvider = ({ children }) => {
       try {
         await bgMusic.stopAsync();
         await bgMusic.setPositionAsync(0);
+        setWasPlayingBeforeBackground(false);
+        console.log('BGM stopped completely');
       } catch (error) {
         console.log('Error stopping BGM:', error);
+      }
+    }
+  };
+
+  const pauseBGM = async () => {
+    if (bgMusic) {
+      try {
+        await bgMusic.pauseAsync();
+        setWasPlayingBeforeBackground(false);
+        console.log('BGM paused');
+      } catch (error) {
+        console.log('Error pausing BGM:', error);
+      }
+    }
+  };
+
+  const resumeBGM = async () => {
+    if (bgMusic) {
+      try {
+        await bgMusic.playAsync();
+        setWasPlayingBeforeBackground(true);
+        console.log('BGM resumed');
+      } catch (error) {
+        console.log('Error resuming BGM:', error);
       }
     }
   };
@@ -199,7 +234,9 @@ export const AudioProvider = ({ children }) => {
         sfxVolume,
         setMusicVolumeAsync,
         setSFXVolumeAsync,
-        stopBGM
+        stopBGM,
+        pauseBGM,
+        resumeBGM
       }}
     >
       {children}

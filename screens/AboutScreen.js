@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform, Dimensions, TouchableOpacity, ScrollV
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTheme } from '../components/ThemeContext';
+import { useButtonSound } from '../hooks/useButtonSound';
 
 // Screen dimensions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -21,6 +22,7 @@ const paddingBottomContent = clamp(10, SCREEN_HEIGHT * 0.05, 40);
 
 export default function AboutScreen({ navigation }) {
   const { theme } = useTheme();
+  const handlePress = useButtonSound();
 
   // Verify reactivity with useEffect
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function AboutScreen({ navigation }) {
           shadowColor: theme.shadowColor,
           elevation: 5,
         }]}
-        onPress={() => navigation.goBack()}
+        onPress={() => handlePress(() => navigation.goBack())}
       >
         <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
         <Icon name="arrow-right" size={20} color={theme.titleText} />

@@ -5,6 +5,7 @@ import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAudio } from '../components/AudioContext';
 import { useTheme } from '../components/ThemeContext';
+import { useButtonSound } from '../hooks/useButtonSound';
 
 // Screen dimensions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -55,6 +56,7 @@ export default function SettingsScreen({ navigation }) {
     playPopSound 
   } = useAudio();
   const { isDarkTheme, toggleTheme, theme, isSystemTheme, toggleSystemTheme, setTheme } = useTheme();
+  const handlePress = useButtonSound();
 
   const handleMusicVolumeChange = async (value) => {
     await setMusicVolumeAsync(value);
@@ -80,7 +82,7 @@ export default function SettingsScreen({ navigation }) {
           shadowColor: theme.shadowColor,
           elevation: 5,
         }]}
-        onPress={() => navigation.goBack()}
+        onPress={() => handlePress(() => navigation.goBack())}
       >
         <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
         <Icon name="arrow-right" size={20} color={theme.titleText} />
@@ -208,7 +210,7 @@ export default function SettingsScreen({ navigation }) {
             borderWidth: 1,
             shadowColor: theme.shadowColor,
           }]}
-          onPress={() => navigation.navigate('About')}
+          onPress={() => handlePress(() => navigation.navigate('About'))}
         >
           <View style={styles.settingHeader}>
             <Icon name="info" size={wp('6')} color={theme.primaryAccent} />

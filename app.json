@@ -1,19 +1,25 @@
 {
   "expo": {
-    "name": "molecule_simulator",
-    "slug": "molecule_simulator",
+    "name": "SMART SCIENCE",
+    "slug": "smart-science",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/Dark_Logo.png",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/Light_Logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "dark": {
+        "image": "./assets/Dark_Logo.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#000000"
+      }
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "buildNumber": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,20 +27,27 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.molecule_simulator",
+      "package": "com.smartscience",
       "softwareKeyboardLayoutMode": "pan",
-      "immersive": true
+      "immersive": true,
+      "minSdkVersion": 21,
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "6019b5e3-ee63-43f4-9823-27e9c605bc8a"
-      }
-    },
     "plugins": [
       "expo-audio"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "53646daa-aa3a-49b0-ac3f-9b71ca0288e7"
+      }
+    },
+    "owner": "labrattrail"
   }
 }

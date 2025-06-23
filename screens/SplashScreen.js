@@ -13,7 +13,7 @@ const clamp = (min, val, max) => Math.min(Math.max(val, min), max);
 
 // Responsive values
 const logoSize = clamp(120, SCREEN_WIDTH * 0.25, 200);
-const fontTitle = clamp(32, SCREEN_WIDTH * 0.12, 48);
+const fontTitle = clamp(40, SCREEN_WIDTH * 0.08,52);
 const fontSubtitle = clamp(16, SCREEN_WIDTH * 0.06, 24);
 const fontButton = clamp(18, SCREEN_WIDTH * 0.07, 24);
 const buttonPaddingVertical = clamp(12, SCREEN_HEIGHT * 0.02, 20);
@@ -162,7 +162,7 @@ export default function SplashScreen({ navigation }) {
         <Text style={[styles.title, { 
           color: theme.primaryAccent,
           textShadowColor: isDarkTheme ? 'rgba(76, 201, 240, 0.4)' : 'rgba(76, 201, 240, 0.2)',
-        }]}>Smart Science</Text>
+        }]} numberOfLines={1}>SMART SCIENCE</Text>
         <Text style={[styles.subtitle, { 
           color: theme.subtitleText,
           textShadowColor: isDarkTheme ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
@@ -229,6 +229,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
     letterSpacing: 1,
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
+    flexShrink: 0,
   },
   subtitle: {
     color: '#FFFFFF',

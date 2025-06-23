@@ -20,6 +20,7 @@ const phaseColors = {
   "Solid": "#4a90e2",
   "Liquid": "#7ed957",
   "Gas": "#ffa500",
+  "Critical": "#ff1493", // Deep pink for critical point
   "Supercritical": "#ff7eeb",
 };
 
@@ -153,19 +154,54 @@ export default function HelpScreen() {
             <View style={{ gap: 8 }}>
               <View style={styles.instructionItem}>
                 <Icon name="gesture-tap" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
-                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Drag the temperature slider to change temperature</Text>
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Drag the temperature slider (left side) to change temperature</Text>
               </View>
               <View style={styles.instructionItem}>
                 <Icon name="gesture-tap" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
-                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Drag the pressure slider to change pressure</Text>
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Drag the pressure slider (right side) to change pressure</Text>
               </View>
               <View style={styles.instructionItem}>
                 <Icon name="keyboard" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
                 <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Type values directly in the input fields</Text>
               </View>
               <View style={styles.instructionItem}>
+                <Icon name="link-variant" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Use the LINK button to follow phase boundaries</Text>
+              </View>
+              <View style={styles.instructionItem}>
                 <Icon name="atom" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
                 <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Watch molecules change based on phase</Text>
+              </View>
+              <View style={styles.instructionItem}>
+                <Icon name="thermometer" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Check the thermometer for temperature visualization</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Layout Overview */}
+          <View style={[
+            styles.section,
+            {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.borderColor,
+              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              padding: sectionPad,
+            },
+          ]}>
+            <Text style={[styles.sectionTitle, { color: theme.primaryAccent, fontSize: fontSubtitle + 2 }]}>Layout Overview</Text>
+            <View style={{ gap: 8 }}>
+              <View style={styles.layoutItem}>
+                <Icon name="view-dashboard" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Left: Phase diagram and temperature controls</Text>
+              </View>
+              <View style={styles.layoutItem}>
+                <Icon name="molecule" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Center: Phase label and molecule simulations</Text>
+              </View>
+              <View style={styles.layoutItem}>
+                <Icon name="slope-uphill" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Right: Pressure controls and thermometer</Text>
               </View>
             </View>
           </View>
@@ -195,6 +231,10 @@ export default function HelpScreen() {
                 <Text style={[styles.colorText, { color: theme.subtitleText, fontSize: fontBody }]}>Gas</Text>
               </View>
               <View style={styles.colorItem}>
+                <View style={[styles.colorBox, { backgroundColor: phaseColors["Critical"], width: colorBoxSize, height: colorBoxSize, borderColor: theme.borderColor }]} />
+                <Text style={[styles.colorText, { color: theme.subtitleText, fontSize: fontBody }]}>Critical</Text>
+              </View>
+              <View style={styles.colorItem}>
                 <View style={[styles.colorBox, { backgroundColor: phaseColors["Supercritical"], width: colorBoxSize, height: colorBoxSize, borderColor: theme.borderColor }]} />
                 <Text style={[styles.colorText, { color: theme.subtitleText, fontSize: fontBody }]}>Supercritical</Text>
               </View>
@@ -215,23 +255,27 @@ export default function HelpScreen() {
             <View style={{ gap: 8 }}>
               <View style={styles.keyPointItem}>
                 <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
-                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Red dot shows current position on diagram</Text>
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Colored dot shows current position on diagram</Text>
               </View>
               <View style={styles.keyPointItem}>
                 <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
-                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Triple point: where solid, liquid, gas coexist</Text>
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Triple point: where solid, liquid, gas coexist (0.01°C, 0.006 atm)</Text>
               </View>
               <View style={styles.keyPointItem}>
                 <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
-                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Critical point: boundary between liquid and gas</Text>
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Critical point: boundary between liquid and gas (374°C, 218 atm)</Text>
               </View>
               <View style={styles.keyPointItem}>
                 <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
-                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Temperature range: -73°C to 427°C</Text>
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Temperature range: -73°C to 427°C (200K to 700K)</Text>
               </View>
               <View style={styles.keyPointItem}>
                 <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
                 <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Pressure range: 0.001 to 300 atm</Text>
+              </View>
+              <View style={styles.keyPointItem}>
+                <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>LINK mode follows the phase boundary curve</Text>
               </View>
             </View>
           </View>
@@ -259,6 +303,87 @@ export default function HelpScreen() {
               <View style={styles.boundaryItem}>
                 <Text style={[styles.boundaryName, { color: theme.titleText, fontSize: fontBody + 2 }]}>Vaporization Curve</Text>
                 <Text style={[styles.boundaryDesc, { color: theme.subtitleText, fontSize: fontBody }]}>Liquid-gas boundary (boiling curve)</Text>
+              </View>
+              <View style={styles.boundaryItem}>
+                <Text style={[styles.boundaryName, { color: theme.titleText, fontSize: fontBody + 2 }]}>Critical Point Line</Text>
+                <Text style={[styles.boundaryDesc, { color: theme.subtitleText, fontSize: fontBody }]}>Boundary to supercritical fluid region</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Ice Phases */}
+          <View style={[
+            styles.section,
+            {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.borderColor,
+              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              padding: sectionPad,
+            },
+          ]}>
+            <Text style={[styles.sectionTitle, { color: theme.primaryAccent, fontSize: fontSubtitle + 2 }]}>Ice Phases</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.subtitleText, fontSize: fontBody, marginBottom: 8 }]}>
+              Water can exist in different solid phases under high pressure
+            </Text>
+            <View style={{ gap: 8 }}>
+              <View style={styles.icePhaseItem}>
+                <Text style={[styles.icePhaseName, { color: theme.titleText, fontSize: fontBody + 1 }]}>Ice I</Text>
+                <Text style={[styles.icePhaseDesc, { color: theme.subtitleText, fontSize: fontBody }]}>Normal ice (hexagonal structure) - below 209.9 atm</Text>
+              </View>
+              <View style={styles.icePhaseItem}>
+                <Text style={[styles.icePhaseName, { color: theme.titleText, fontSize: fontBody + 1 }]}>Ice III</Text>
+                <Text style={[styles.icePhaseDesc, { color: theme.subtitleText, fontSize: fontBody }]}>Tetragonal structure - 209.9 to 350.1 atm, below -22°C</Text>
+              </View>
+              <View style={styles.icePhaseItem}>
+                <Text style={[styles.icePhaseName, { color: theme.titleText, fontSize: fontBody + 1 }]}>Ice V</Text>
+                <Text style={[styles.icePhaseDesc, { color: theme.subtitleText, fontSize: fontBody }]}>Monoclinic structure - 350.1 to 632.4 atm, below -17°C</Text>
+              </View>
+              <View style={styles.icePhaseItem}>
+                <Text style={[styles.icePhaseName, { color: theme.titleText, fontSize: fontBody + 1 }]}>Ice VI</Text>
+                <Text style={[styles.icePhaseDesc, { color: theme.subtitleText, fontSize: fontBody }]}>Tetragonal structure - 632.4 to 2216.0 atm, below 0.16°C</Text>
+              </View>
+              <View style={styles.icePhaseItem}>
+                <Text style={[styles.icePhaseName, { color: theme.titleText, fontSize: fontBody + 1 }]}>Ice VII</Text>
+                <Text style={[styles.icePhaseDesc, { color: theme.subtitleText, fontSize: fontBody }]}>Cubic structure - above 2216.0 atm, below 81.85°C</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Special Features */}
+          <View style={[
+            styles.section,
+            {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.borderColor,
+              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              padding: sectionPad,
+            },
+          ]}>
+            <Text style={[styles.sectionTitle, { color: theme.primaryAccent, fontSize: fontSubtitle + 2 }]}>Special Features</Text>
+            <View style={{ gap: 8 }}>
+              <View style={styles.featureItem}>
+                <Icon name="link-variant" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>LINK Mode: Automatically follows phase boundaries when enabled</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="thermometer" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Interactive Thermometer: Shows temperature with color-coded fluid</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="molecule" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Molecule Simulations: Watch particle behavior change with phase</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="chart-line" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Accurate Phase Boundaries: Based on IAPWS standard data</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="snowflake" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Multiple Ice Phases: Explore different solid water structures</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="atom" size={fontSubtitle + 6} color={theme.primaryAccent} style={styles.instructionIcon} />
+                <Text style={[styles.instructionText, { color: theme.subtitleText, fontSize: fontBody }]}>Critical Point: Special phase at 374°C, 218 atm</Text>
               </View>
             </View>
           </View>
@@ -376,5 +501,28 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginRight: 6,
     fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
+  },
+  layoutItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  sectionSubtitle: {
+    opacity: 0.8,
+  },
+  icePhaseItem: {
+    paddingVertical: 6,
+  },
+  icePhaseName: {
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  icePhaseDesc: {
+    lineHeight: 16,
   },
 }); 
