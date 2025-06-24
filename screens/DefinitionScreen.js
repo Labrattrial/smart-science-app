@@ -26,6 +26,8 @@ const definitions = [
   { term: 'Solid', def: 'A state of matter with fixed shape and volume.', icon: '🧊' },
   { term: 'Sublimation', def: 'When solid state directly changes to gas without passing the liquid state.', icon: '✨' },
   { term: 'Triple Point', def: 'The temperature and pressure at which all three phases (solid, liquid, gas) coexist.', icon: '🎯' },
+  { term: 'Pressure', def: 'Pressure is the force exerted per unit area on a substance, influencing phase transitions like melting and boiling points.', icon: '💨' },
+  { term: 'Temperature', def: 'Temperature measures the average kinetic energy of particles in a substance, determining phase transitions like melting, boiling, and freezing.', icon: '🌡️ ' },
 ];
 
 export default function DefinitionScreen() {

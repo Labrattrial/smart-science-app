@@ -277,6 +277,14 @@ export default function HelpScreen() {
                 <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
                 <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>LINK mode follows the phase boundary curve</Text>
               </View>
+              <View style={styles.keyPointItem}>
+                <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Temperature and thermometer now have labeled ticks at -50°C, 0°C, 50°C, and 100°C for easier reading</Text>
+              </View>
+              <View style={styles.keyPointItem}>
+                <Icon name="circle-small" size={fontSubtitle + 8} color={theme.primaryAccent} />
+                <Text style={[styles.keyPointText, { color: theme.subtitleText, fontSize: fontBody }]}>Pressure input: max 4 digits (before/after decimal), optional decimal point</Text>
+              </View>
             </View>
           </View>
 

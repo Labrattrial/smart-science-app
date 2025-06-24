@@ -32,6 +32,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import TwoPhaseMoleculeSimulator from '../components/TwoPhaseMoleculeSimulator';
 
 // Screen dimensions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -423,12 +424,11 @@ function getPhase(T, P) {
     return "Supercritical";
   }
   
-  // Below triple point temperature - only solid and gas phases exist
+  // Below triple point temperature - use visual boundary for gas/solid
   if (T < T_TRIPLE) {
-    // Check sublimation curve (solid-gas boundary)
-    const sublimationP = sublimationPressure(T);
-    
-    if (P < sublimationP) {
+    // Use visual boundary (main vaporization curve) for gas/solid region under 0°C
+    const visualBoundaryP = getVisualCurvePressure(T);
+    if (P < visualBoundaryP) {
       return "Gas";
     } else {
       return "Solid";
@@ -647,7 +647,7 @@ function MoleculeSim({ phase, width = 70, height = 70 }) {
     </Svg>
   );
 }
-
+//LINK MODE
 // Accurate fusion curve (solid-liquid boundary) using data points
 function accurateFusionCurve(T) {
   // Data points for fusion curve (pressure in atm, temperature in K)
@@ -1891,9 +1891,24 @@ export default function DiagramScreen() {
   const handlePressureChange = useCallback((text) => {
     setIsTyping(true);
     setLastControlUsed('pressure');
-    
-    // Allow only numbers and one decimal point, max 7 characters
-    if (/^[0-9]*\.?[0-9]*$/.test(text) && text.length <= 7) {
+    // Allow only up to 4 digits and at most one decimal point
+    // Acceptable: 1234, 12.34, 1.234, .123, 0.123, 1234.
+    // Not acceptable: 12345, 12.345, 1.2345, 123.45, 12345.6, etc.
+    // Regex: up to 4 digits, optional decimal, up to 4 digits after decimal, but total digits (excluding decimal) <= 4
+    let valid = false;
+    if (/^\d{0,4}$/.test(text)) {
+      valid = true;
+    } else if (/^\d{0,4}\.$/.test(text)) {
+      valid = true;
+    } else if (/^\d{0,4}\.(\d{0,4})$/.test(text)) {
+      // Only allow if total digits <= 4
+      const [whole, frac] = text.split('.');
+      if ((whole.length + frac.length) <= 4) valid = true;
+    } else if (/^\.\d{0,4}$/.test(text)) {
+      // Leading decimal, e.g. .123
+      if (text.replace('.', '').length <= 4) valid = true;
+    }
+    if (valid) {
       setPressureInput(text);
       const num = parseFloat(text);
       if (!isNaN(num)) {
@@ -1901,27 +1916,17 @@ export default function DiagramScreen() {
           setPressure(num);
           setPressureSliderValue(pressureToLogSlider(num));
           setPressureWarning(false);
-          
-          // If linked, automatically adjust temperature to stay on phase boundary
           if (isLinked) {
-            // Check for starting point behavior first
             const startingPointResult = handleStartingPointBehavior(num, 'pressure');
-            
             if (startingPointResult) {
-              // Use starting point behavior
-              console.log(`Pressure input: Using starting point behavior - T=${startingPointResult.newTemperature}K, P=${startingPointResult.newPressure}atm`);
               setTemperature(startingPointResult.newTemperature);
               setPressure(startingPointResult.newPressure);
               setPressureSliderValue(pressureToLogSlider(startingPointResult.newPressure));
             } else {
-              // Use boundary logic based on starting direction
               if (startingDirection === 'pressure') {
-                // Follow fusion curve (nearly vertical)
                 const boundaryTemperature = getFusionCurveTemperature(num);
-                console.log(`Pressure input: Following fusion curve - P=${num}atm, T=${boundaryTemperature}K`);
                 setTemperature(boundaryTemperature);
               } else {
-                // Follow vaporization curve (default)
                 const newActualTemp = getVisualCurveTemperature(num);
                 setTemperature(newActualTemp);
               }
@@ -2330,7 +2335,7 @@ export default function DiagramScreen() {
                   />
                   
                   {/* Scale markings - major ticks */}
-                  {[273.15, 373.15, 646.15].map((temp, i) => {
+                  {[273.15, 223.15, 323.15, 373.15, 646.15].map((temp, i) => {
                     const stretchedT = getStretchedTemperature(temp);
                     const y = bulbY - bulbRadius - ((stretchedT - minT) / (maxT - minT)) * (tubeHeight - 4);
                     return (
@@ -2355,6 +2360,60 @@ export default function DiagramScreen() {
                       </React.Fragment>
                     );
                   })}
+                  {/* Add 50°C tick */}
+                  {(() => {
+                    const temp = 273.15 + 50;
+                    const stretchedT = getStretchedTemperature(temp);
+                    const y = bulbY - bulbRadius - ((stretchedT - minT) / (maxT - minT)) * (tubeHeight - 4);
+                    return (
+                      <React.Fragment key="major-50">
+                        <Rect
+                          x={scaleX}
+                          y={y - 1}
+                          width={6}
+                          height={2}
+                          fill={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
+                          rx="1"
+                        />
+                        <SvgText
+                          x={scaleX + 10}
+                          y={y + 4}
+                          fontSize={Math.max(8, fontSlider * 0.8)}
+                          fill={theme.subtitleText}
+                          fontWeight="bold"
+                        >
+                          50
+                        </SvgText>
+                      </React.Fragment>
+                    );
+                  })()}
+                  {/* Add -50°C tick */}
+                  {(() => {
+                    const temp = 273.15 - 50;
+                    const stretchedT = getStretchedTemperature(temp);
+                    const y = bulbY - bulbRadius - ((stretchedT - minT) / (maxT - minT)) * (tubeHeight - 4);
+                    return (
+                      <React.Fragment key="major--50">
+                        <Rect
+                          x={scaleX}
+                          y={y - 1}
+                          width={6}
+                          height={2}
+                          fill={theme.isDarkTheme ? '#4CC9F0' : '#1976D2'}
+                          rx="1"
+                        />
+                        <SvgText
+                          x={scaleX + 10}
+                          y={y + 4}
+                          fontSize={Math.max(8, fontSlider * 0.8)}
+                          fill={theme.subtitleText}
+                          fontWeight="bold"
+                        >
+                          -50
+                        </SvgText>
+                      </React.Fragment>
+                    );
+                  })()}
                   
                   {/* Scale markings - minor ticks */}
                   {[273.15, 373.15, 646.15].map((temp, i) => {
@@ -2545,13 +2604,14 @@ export default function DiagramScreen() {
             >
               <Slider
                 style={[styles.verticalSlider, { width: currentDiagramHeight * 0.6 }]}
-                minimumValue={0}
+                minimumValue={isLinked ? 0.006 : 0}
                 maximumValue={1}
                 value={pressureSliderValue}
                 onValueChange={(value) => {
                   setPressureSliderValue(value);
                   setLastControlUsed('pressure'); // Track that pressure control was used
-                  const newPressure = logSliderToPressure(value);
+                  let newPressure = logSliderToPressure(value);
+                  if (isLinked && newPressure < 0.006) newPressure = 0.006;
                   setPressure(newPressure);
                   
                   // If linked, automatically adjust temperature to stay on phase boundary
@@ -2942,7 +3002,42 @@ export default function DiagramScreen() {
                 >
                   0
                 </SvgText>
-                
+                {/* -50°C tick */}
+                <Path
+                  d={`M${mapT(273.15 - 50)},${currentDiagramHeight - 40} L${mapT(273.15 - 50)},${currentDiagramHeight - 32}`}
+                  stroke={theme.titleText}
+                  strokeWidth="1.3"
+                  opacity={0.6}
+                />
+                <SvgText
+                  x={mapT(273.15 - 50)}
+                  y={currentDiagramHeight - 18}
+                  fontSize={fontSlider}
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  opacity={0.93}
+                >
+                  -50
+                </SvgText>
+                {/* Midpoint tick (50°C) */}
+                <Path
+                  d={`M${mapT(273.15 + 50)},${currentDiagramHeight - 40} L${mapT(273.15 + 50)},${currentDiagramHeight - 32}`}
+                  stroke={theme.titleText}
+                  strokeWidth="1.3"
+                  opacity={0.6}
+                />
+                <SvgText
+                  x={mapT(273.15 + 50)}
+                  y={currentDiagramHeight - 18}
+                  fontSize={fontSlider}
+                  fill={theme.subtitleText}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  opacity={0.93}
+                >
+                  50
+                </SvgText>
                 {/* Second temperature tick - moved to actual 100°C position in stretched scale */}
                 <Path
                   d={`M${mapT(373.15)},${currentDiagramHeight - 40} L${mapT(373.15)},${currentDiagramHeight - 32}`}
@@ -3338,28 +3433,97 @@ export default function DiagramScreen() {
               height: moleculeSize,
               borderRadius: moleculeSize / 2,
               marginBottom: moleculeMargin,
-            }]}>
-              <MoleculeSim
-                phase={phase === "Supercritical" || phase === "Critical" ? "Gas" : phase}
-                width={moleculeSize}
-                height={moleculeSize}
-              />
+              alignItems: 'center', // Ensure centering
+              justifyContent: 'center', // Ensure centering
+              display: 'flex', // Ensure flex centering
+              overflow: 'hidden', // Ensure children are clipped to the container
+            }]}> 
+              {isLinked ? (() => {
+                const tol = 0.02; // Slightly increased tolerance for robustness
+                // Triple point: show all three phases
+                if (Math.abs(temperature - T_TRIPLE) < 0.01 && Math.abs(pressure - P_TRIPLE) < 0.001) {
+                  return <TwoPhaseMoleculeSimulator boundary="triple" width={moleculeSize} height={moleculeSize} />;
+                }
+                // Special case: vertical segment from triple point to freezing point
+                if (
+                  temperature <= T_TRIPLE && temperature >= 273.15 &&
+                  pressure >= P_TRIPLE && pressure <= 1
+                ) {
+                  return <TwoPhaseMoleculeSimulator boundary="fusion" width={moleculeSize} height={moleculeSize} />;
+                }
+                // Additional special case: vertical segment for fusion between 0.007 and 0.018 atm
+                if (
+                  temperature <= T_TRIPLE && temperature >= 273.15 &&
+                  pressure >= 0.007 && pressure <= 0.018
+                ) {
+                  return <TwoPhaseMoleculeSimulator boundary="fusion" width={moleculeSize} height={moleculeSize} />;
+                }
+                // Sublimation: below triple point line
+                if (temperature < T_TRIPLE && pressure < sublimationPressure(temperature) + tol) {
+                  return <TwoPhaseMoleculeSimulator boundary="sublimation" width={moleculeSize} height={moleculeSize} />;
+                }
+                // Vaporization: from triple point up to critical point (visual curve)
+                if (
+                  temperature >= T_TRIPLE && temperature <= T_CRITICAL &&
+                  Math.abs(pressure - getVisualCurvePressure(temperature)) < tol
+                ) {
+                  return <TwoPhaseMoleculeSimulator boundary="vaporization" width={moleculeSize} height={moleculeSize} />;
+                }
+                // Dramatically extended fusion: for T <= T_TRIPLE + 1 and wide tolerance
+                if (
+                  temperature <= T_TRIPLE + 1 &&
+                  Math.abs(pressure - accurateFusionCurve(temperature)) < (tol * 3)
+                ) {
+                  return <TwoPhaseMoleculeSimulator boundary="fusion" width={moleculeSize} height={moleculeSize} />;
+                }
+                // Default: single phase
+                return (
+                  <MoleculeSim
+                    phase={phase === "Supercritical" || phase === "Critical" ? "Gas" : phase}
+                    width={moleculeSize}
+                    height={moleculeSize}
+                  />
+                );
+              })() : (
+                <MoleculeSim
+                  phase={phase === "Supercritical" || phase === "Critical" ? "Gas" : phase}
+                  width={moleculeSize}
+                  height={moleculeSize}
+                />
+              )}
             </View>
             <View style={[styles.moleculeCircle, { 
               backgroundColor: theme.cardBackground,
               shadowColor: theme.shadowColor,
               elevation: elevation,
               borderColor: theme.borderColor,
-              width: moleculeSize,
-              height: moleculeSize,
-              borderRadius: moleculeSize / 2,
+              width: moleculeSize * 1.7,
+              height: moleculeSize * 1.7,
+              borderRadius: (moleculeSize * 1.7) / 2,
               marginBottom: moleculeMargin,
-            }]}>
-              <PhaseTransitionSim
-                phase={phase === "Supercritical" || phase === "Critical" ? "gas" : phase.toLowerCase()}
-                width={"100%"}
-                height={"100%"}
-              />
+              overflow: 'hidden',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }]}> 
+              {isLinked && Math.abs(temperature - T_TRIPLE) < 0.01 && Math.abs(pressure - P_TRIPLE) < 0.001 ? (
+                <PhaseTransitionSim
+                  phase="liquid"
+                  width={"100%"}
+                  height={"100%"}
+                />
+              ) : isLinked && temperature < T_TRIPLE && pressure < sublimationPressure(temperature) + 0.02 ? (
+                <PhaseTransitionSim
+                  phase="sublimation"
+                  width={"100%"}
+                  height={"100%"}
+                />
+              ) : (
+                <PhaseTransitionSim
+                  phase={phase === "Supercritical" || phase === "Critical" ? "gas" : phase.toLowerCase()}
+                  width={"100%"}
+                  height={"100%"}
+                />
+              )}
             </View>
           </View>
         </View>

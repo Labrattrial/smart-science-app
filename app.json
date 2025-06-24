@@ -23,13 +23,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/Dark_Logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.smartscience",
       "softwareKeyboardLayoutMode": "pan",
-      "immersive": true,
       "minSdkVersion": 21,
       "versionCode": 1,
       "permissions": [
@@ -45,7 +44,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "53646daa-aa3a-49b0-ac3f-9b71ca0288e7"
+        "projectId": "a2fa15f0-f94e-4509-a15f-c3dab5edc9c9"
       }
     },
     "owner": "labrattrail"

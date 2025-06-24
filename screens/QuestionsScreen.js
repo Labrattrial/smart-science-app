@@ -101,6 +101,16 @@ export default function QuizScreen() {
     bounceAnim.setValue(0);
   };
 
+  const getScoreMessage = () => {
+    const percent = score / quiz.length;
+    if (percent === 1) return "Perfect Score! 🌟";
+    if (percent >= 0.9) return "Amazing Job! 🎉";
+    if (percent >= 0.75) return "Great Work! 😃";
+    if (percent >= 0.6) return "Good Effort! 👍";
+    if (percent >= 0.4) return "Not Bad, Keep Going! 🙂";
+    return "Keep Practicing! 💪";
+  };
+
   if (qIndex >= quiz.length) {
     return (
       <View 
@@ -133,7 +143,7 @@ export default function QuizScreen() {
           ]}
         >
           <Icon name="trophy-award" size={80} color={theme.primaryAccent} style={styles.trophyIcon} />
-          <Text style={[styles.scoreTitle, { color: theme.primaryAccent }]}>Amazing Job! 🎉</Text>
+          <Text style={[styles.scoreTitle, { color: theme.primaryAccent }]}>{getScoreMessage()}</Text>
           <Text style={[styles.scoreText, { color: theme.titleText }]}>You got {score} out of {quiz.length} correct!</Text>
           <View style={[styles.moleculeRow, { 
             backgroundColor: theme.cardBackground,
@@ -280,7 +290,7 @@ export default function QuizScreen() {
           {
             backgroundColor: theme.cardBackground,
             borderColor: theme.primaryAccent,
-            opacity: fadeAnim,
+            opacity: 0.6,
             transform: [{ translateY: slideAnim }]
           }
         ]}

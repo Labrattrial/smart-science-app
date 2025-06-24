@@ -19,7 +19,7 @@ const phaseColors = {
   Gas: "#ffa500",
 };
 
-function MoleculeSim({ phase, width = 70, height = 70 }) {
+function MoleculeSim({ phase, width = 70, height = 70, moleculeRadius, moleculeSpacing }) {
   const MAX_MOLS = 9;
   const count = phase === "Solid" ? 9 : phase === "Liquid" ? 8 : 6;
   const progress = useSharedValue(0);
@@ -67,19 +67,21 @@ function MoleculeSim({ phase, width = 70, height = 70 }) {
   function createAnimatedProps(i) {
     return useAnimatedProps(() => {
       if (phase === "Solid") {
-        // Center position for solid molecules
-        const centerX = width / 2;
-        const centerY = height / 2;
-        
+        // Calculate grid size for centering
+        const gridCount = 3;
+        const spacing = moleculeSpacing !== undefined ? moleculeSpacing : 13;
+        const gridWidth = (gridCount - 1) * spacing;
+        const gridHeight = (gridCount - 1) * spacing;
+        const offsetX = (width - gridWidth) / 2;
+        const offsetY = (height - gridHeight) / 2;
+
         // Calculate grid positions around center
         const row = Math.floor(i / 3) - 1;
         const col = (i % 3) - 1;
-        const spacing = 13; // Space between molecules (reduced from 15)
-        
-        // Base position in grid
-        const baseX = centerX + col * spacing;
-        const baseY = centerY + row * spacing;
-        
+        // Center the grid in the SVG
+        const baseX = offsetX + (col + 1) * spacing;
+        const baseY = offsetY + (row + 1) * spacing;
+
         // Add small random vibration
         const t = progress.value * 2 * Math.PI * 6 + mols[i].offset;
         const vibrateX = Math.sin(t) * 0.2;
@@ -182,7 +184,7 @@ function MoleculeSim({ phase, width = 70, height = 70 }) {
       {[...Array(count)].map((_, i) => (
         <AnimatedCircle
           key={i}
-          r={phase === "Solid" ? 7 : phase === "Liquid" ? 7 : 6}
+          r={moleculeRadius !== undefined ? moleculeRadius : (phase === "Solid" ? 7 : phase === "Liquid" ? 7 : 6)}
           fill={phaseColors[phase]}
           stroke="#222"
           strokeWidth="1.5"
@@ -194,8 +196,8 @@ function MoleculeSim({ phase, width = 70, height = 70 }) {
   );
 }
 
-export default function MoleculeSimulator({ phase, width = 70, height = 70 }) {
-  return <MoleculeSim phase={phase} width={width} height={height} />;
+export default function MoleculeSimulator({ phase, width = 70, height = 70, moleculeRadius, moleculeSpacing }) {
+  return <MoleculeSim phase={phase} width={width} height={height} moleculeRadius={moleculeRadius} moleculeSpacing={moleculeSpacing} />;
 }
 
 const styles = StyleSheet.create({
