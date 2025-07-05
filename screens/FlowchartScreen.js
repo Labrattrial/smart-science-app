@@ -14,6 +14,7 @@ import Animated, {
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import EntypoIcon from 'react-native-vector-icons/Entypo';
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
@@ -396,7 +397,7 @@ export default function MoleculeSimRow() {
           color: theme.titleText,
           fontSize: backButtonFont,
         }]}>Back</Text>
-        <Icon name="arrow-right" size={20} color={theme.titleText} />
+        <EntypoIcon name="back" size={20} color={theme.titleText} />
       </TouchableOpacity>
 
       <View style={styles.titleContainer}>

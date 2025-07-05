@@ -6,6 +6,7 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAudio } from '../components/AudioContext';
 import { useTheme } from '../components/ThemeContext';
+import { useConfirmationDialog } from '../components/ConfirmationDialogContext';
 
 // Screen dimensions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -28,6 +29,7 @@ const paddingBottomTitle = clamp(10, SCREEN_HEIGHT * 0.03, 40);
 export default function HomeScreen({ navigation }) {
   const { stopBGM } = useAudio();
   const { theme } = useTheme();
+  const { showConfirmation } = useConfirmationDialog();
 
   // Animation values with useRef
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -89,6 +91,17 @@ export default function HomeScreen({ navigation }) {
       console.log('Error stopping BGM:', error);
       BackHandler.exitApp();
     }
+  };
+
+  const handleExitPress = () => {
+    showConfirmation({
+      title: "Do you want to Quit the App?",
+      message: "Are you sure you want to exit Smart Science?",
+      onConfirm: handleExit,
+      onCancel: () => {},
+      confirmText: "Yes",
+      cancelText: "Cancel"
+    });
   };
 
   return (
@@ -229,7 +242,7 @@ export default function HomeScreen({ navigation }) {
                 borderColor: theme.primaryAccent,
                 shadowColor: theme.shadowColor,
               }]}
-              onPress={handleExit}
+              onPress={handleExitPress}
             >
               <Text style={[styles.sideButtonText, { color: theme.titleText }]}>Exit</Text>
             </TouchableOpacity>

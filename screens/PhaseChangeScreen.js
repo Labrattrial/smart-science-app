@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, ImageBackground, Platform, Image, LayoutAnimation } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import EntypoIcon from 'react-native-vector-icons/Entypo';
 import Icons from 'react-native-vector-icons/FontAwesome6';
 import Feather from 'react-native-vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -125,7 +126,7 @@ export default function PhaseChangeScreen({ navigation }) {
         onPress={() => handlePress(() => navigation.goBack())}
       >
         <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
-        <Icon name="arrow-right" size={20} color={theme.titleText} />
+        <EntypoIcon name="back" size={20} color={theme.titleText} />
       </TouchableOpacity>
 
       <ImageBackground

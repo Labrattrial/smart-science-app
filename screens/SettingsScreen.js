@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform, Dimensions, TouchableOpacity, ScrollV
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import EntypoIcon from 'react-native-vector-icons/Entypo';
 import { useAudio } from '../components/AudioContext';
 import { useTheme } from '../components/ThemeContext';
 import { useButtonSound } from '../hooks/useButtonSound';
@@ -85,7 +86,7 @@ export default function SettingsScreen({ navigation }) {
         onPress={() => handlePress(() => navigation.goBack())}
       >
         <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
-        <Icon name="arrow-right" size={20} color={theme.titleText} />
+        <EntypoIcon name="back" size={20} color={theme.titleText} />
       </TouchableOpacity>
 
       <View style={[styles.header, { 

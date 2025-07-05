@@ -2,11 +2,13 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StatusBar } from 'expo-status-bar';
+import { StatusBar, Platform } from 'expo-status-bar';
 import { View } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
 import { AudioProvider } from './components/AudioContext';
 import { ThemeProvider } from './components/ThemeContext';
+import { ConfirmationDialogProvider } from './components/ConfirmationDialogContext';
+import Immersive from 'react-native-immersive';
 
 import SplashScreen from './screens/SplashScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -33,12 +35,18 @@ export default function App() {
   useEffect(() => {
     // Set system navigation background color
     SystemUI.setBackgroundColorAsync('#10163a');
+    // Enable immersive mode on Android
+    // if (Platform.OS === 'android') {
+    //   Immersive.on();
+    //   Immersive.setImmersive(true);
+    // }
     // No need for StatusBar.setHidden() here
   }, []);
 
   return (
     <ThemeProvider>
     <AudioProvider>
+    <ConfirmationDialogProvider>
       <View style={{ flex: 1, backgroundColor: '#10163a' }}>
         {/* Correct usage of StatusBar */}
         <StatusBar hidden />
@@ -65,6 +73,7 @@ export default function App() {
           </Stack.Navigator>
         </NavigationContainer>
       </View>
+    </ConfirmationDialogProvider>
     </AudioProvider>
     </ThemeProvider>
   );

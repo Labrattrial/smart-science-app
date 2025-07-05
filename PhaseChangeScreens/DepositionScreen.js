@@ -7,6 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome6';
+import EntypoIcon from 'react-native-vector-icons/Entypo';
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
@@ -39,7 +40,7 @@ export default function DepositionScreen() {
         onPress={() => handlePress(() => navigation.goBack())}
       >
         <Text style={[styles.backButtonText, { color: isDarkTheme ? '#FFFFFF' : '#000000' }]}>Back</Text>
-        <Icon name="arrow-right" size={20} color={isDarkTheme ? '#FFFFFF' : '#000000'} />
+        <EntypoIcon name="back" size={20} color={isDarkTheme ? '#FFFFFF' : '#000000'} />
       </TouchableOpacity>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>

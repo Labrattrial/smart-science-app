@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/Dark_Logo.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/Light_Logo.png",
       "resizeMode": "contain",
@@ -47,6 +47,9 @@
         "projectId": "a2fa15f0-f94e-4509-a15f-c3dab5edc9c9"
       }
     },
-    "owner": "labrattrail"
+    "owner": "labrattrail",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }

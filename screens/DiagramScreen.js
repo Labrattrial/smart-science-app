@@ -28,11 +28,13 @@ import Animated, {
 } from "react-native-reanimated";
 import PhaseTransitionSim from './PhaseTransitionSim';
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import EntypoIcon from 'react-native-vector-icons/Entypo';
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import TwoPhaseMoleculeSimulator from '../components/TwoPhaseMoleculeSimulator';
+
 
 // Screen dimensions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -1606,6 +1608,10 @@ export default function DiagramScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
 
+  const handleBackPress = () => {
+    handlePress(() => navigation.goBack());
+  };
+
   // Helper functions for logarithmic pressure slider - moved to top
   const logSliderToPressure = (sliderValue) => {
     // Convert linear slider value (0-1) to logarithmic pressure (0.001-300)
@@ -2203,10 +2209,11 @@ export default function DiagramScreen() {
   };
 
   return (
-    <View 
-      key={theme.background}
-      style={[styles.root, isLandscape && styles.rootLandscape, { backgroundColor: theme.background }]}
-    >
+    <>
+      <View 
+        key={theme.background}
+        style={[styles.root, isLandscape && styles.rootLandscape, { backgroundColor: theme.background }]}
+      >
       <TouchableOpacity 
         style={[styles.backButton, { 
           backgroundColor: theme.buttonPrimary,
@@ -2224,14 +2231,14 @@ export default function DiagramScreen() {
           shadowOpacity: 0.3,
           shadowRadius: shadowRadius,
         }]}
-        onPress={() => handlePress(() => navigation.goBack())}
+        onPress={handleBackPress}
       >
         <Text style={[styles.backButtonText, { 
           color: theme.titleText,
           fontSize: fontBackButton,
           marginRight: wp('1.5'),
         }]}>Back</Text>
-        <Icon name="arrow-right" size={fontBackButton} color={theme.titleText} />
+        <EntypoIcon name="back" size={fontBackButton} color={theme.titleText} />
       </TouchableOpacity>
 
       {/* Sidebar */}
@@ -3529,6 +3536,9 @@ export default function DiagramScreen() {
         </View>
       </View>
     </View>
+
+    
+    </>
   );
 }
 

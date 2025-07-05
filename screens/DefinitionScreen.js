@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, Animated, Platform, TouchableOpacity, Image, LayoutAnimation } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import EntypoIcon from 'react-native-vector-icons/Entypo';
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
@@ -105,7 +106,7 @@ export default function DefinitionScreen() {
         onPress={() => handlePress(() => navigation.goBack())}
       >
         <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
-        <Icon name="arrow-right" size={20} color={theme.titleText} />
+        <EntypoIcon name="back" size={20} color={theme.titleText} />
       </TouchableOpacity>
 
       <ScrollView 

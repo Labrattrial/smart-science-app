@@ -7,13 +7,13 @@ import {
   Platform,
   Animated,
   ScrollView,
-  LayoutAnimation,
   useWindowDimensions,
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import EntypoIcon from 'react-native-vector-icons/Entypo';
 
 // Use the same phase colors as DiagramScreen
 const phaseColors = {
@@ -28,13 +28,12 @@ export default function HelpScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
   const handlePress = useButtonSound();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  // Responsive sizing based on screen dimensions
+  // Efficient responsive sizing - calculated once per render
   const padding = Math.max(16, Math.min(32, width * 0.04));
   const sectionPad = Math.max(12, Math.min(20, width * 0.03));
   const fontTitle = Math.max(18, Math.min(24, width * 0.045));
@@ -42,25 +41,19 @@ export default function HelpScreen() {
   const fontBody = Math.max(12, Math.min(16, width * 0.03));
   const iconSize = Math.max(20, Math.min(28, width * 0.04));
   const colorBoxSize = Math.max(16, Math.min(24, width * 0.03));
+  const borderRadius = Math.max(12, Math.min(24, width * 0.025));
 
   useEffect(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-  }, [theme, width, height]);
-
-  useEffect(() => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 1.12, duration: 350, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
-    ]).start();
+    // Simplified animation for faster loading
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start();
@@ -68,7 +61,6 @@ export default function HelpScreen() {
 
   return (
     <View
-      key={theme.background + width + height}
       style={[
         styles.container,
         { backgroundColor: theme.background, paddingHorizontal: padding, paddingTop: isLandscape ? padding : padding * 2 },
@@ -89,7 +81,7 @@ export default function HelpScreen() {
         onPress={() => handlePress(() => navigation.goBack())}
       >
         <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
-        <Icon name="arrow-right" size={20} color={theme.titleText} />
+        <EntypoIcon name="back" size={20} color={theme.titleText} />
       </TouchableOpacity>
 
       <ScrollView
@@ -104,11 +96,8 @@ export default function HelpScreen() {
               backgroundColor: theme.cardBackground,
               borderColor: theme.primaryAccent,
               opacity: fadeAnim,
-              transform: [
-                { translateY: slideAnim },
-                { scale: scaleAnim },
-              ],
-              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              transform: [{ translateY: slideAnim }],
+              borderRadius: borderRadius,
               padding: sectionPad,
               marginBottom: sectionPad,
               flexDirection: isLandscape ? 'row' : 'column',
@@ -146,7 +135,7 @@ export default function HelpScreen() {
             {
               backgroundColor: theme.cardBackground,
               borderColor: theme.borderColor,
-              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              borderRadius: borderRadius,
               padding: sectionPad,
             },
           ]}>
@@ -185,7 +174,7 @@ export default function HelpScreen() {
             {
               backgroundColor: theme.cardBackground,
               borderColor: theme.borderColor,
-              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              borderRadius: borderRadius,
               padding: sectionPad,
             },
           ]}>
@@ -212,7 +201,7 @@ export default function HelpScreen() {
             {
               backgroundColor: theme.cardBackground,
               borderColor: theme.borderColor,
-              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              borderRadius: borderRadius,
               padding: sectionPad,
             },
           ]}>
@@ -247,7 +236,7 @@ export default function HelpScreen() {
             {
               backgroundColor: theme.cardBackground,
               borderColor: theme.borderColor,
-              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              borderRadius: borderRadius,
               padding: sectionPad,
             },
           ]}>
@@ -294,7 +283,7 @@ export default function HelpScreen() {
             {
               backgroundColor: theme.cardBackground,
               borderColor: theme.borderColor,
-              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              borderRadius: borderRadius,
               padding: sectionPad,
             },
           ]}>
@@ -325,7 +314,7 @@ export default function HelpScreen() {
             {
               backgroundColor: theme.cardBackground,
               borderColor: theme.borderColor,
-              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              borderRadius: borderRadius,
               padding: sectionPad,
             },
           ]}>
@@ -363,7 +352,7 @@ export default function HelpScreen() {
             {
               backgroundColor: theme.cardBackground,
               borderColor: theme.borderColor,
-              borderRadius: Math.max(12, Math.min(24, width * 0.025)),
+              borderRadius: borderRadius,
               padding: sectionPad,
             },
           ]}>

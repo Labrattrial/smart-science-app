@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, Image, LayoutAnimation } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import EntypoIcon from 'react-native-vector-icons/Entypo';
 import { useNavigation } from '@react-navigation/native';
 import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { useConfirmationDialog } from '../components/ConfirmationDialogContext';
 
 const quiz = [
   { question: "Which transformation changes gas to solid?", choices: ["Deposition", "Freezing", "Melting", "Sublimation"], answer: "Deposition" },
@@ -44,6 +46,18 @@ export default function QuizScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const handlePress = useButtonSound();
+  const { showConfirmation } = useConfirmationDialog();
+
+  const handleBackPress = () => {
+    showConfirmation({
+      title: "Go back to Main Menu?",
+      message: "Are you sure you want to return to the main menu?",
+      onConfirm: () => handlePress(() => navigation.goBack()),
+      onCancel: () => {},
+      confirmText: "Yes",
+      cancelText: "Cancel"
+    });
+  };
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState(null);
   const [score, setScore] = useState(0);
@@ -189,10 +203,11 @@ export default function QuizScreen() {
   const q = quiz[qIndex];
 
   return (
-    <View 
-      key={theme.background}
-      style={[styles.container, { backgroundColor: theme.background }]}
-    >
+    <>
+      <View 
+        key={theme.background}
+        style={[styles.container, { backgroundColor: theme.background }]}
+      >
       <Image 
         source={require('../assets/logo.png')}
         style={[styles.logo, { shadowColor: theme.primaryAccent }]}
@@ -206,10 +221,10 @@ export default function QuizScreen() {
           shadowColor: theme.shadowColor,
           elevation: 5,
         }]}
-        onPress={() => handlePress(() => navigation.goBack())}
+        onPress={handleBackPress}
       >
         <Text style={[styles.backButtonText, { color: theme.titleText }]}>Back</Text>
-        <Icon name="arrow-right" size={24} color={theme.titleText} />
+        <EntypoIcon name="back" size={24} color={theme.titleText} />
       </TouchableOpacity>
 
       <Animated.View 
@@ -300,6 +315,9 @@ export default function QuizScreen() {
         <Icon name="flask" size={32} color={theme.primaryAccent} style={styles.moleculeIcon} />
       </Animated.View>
     </View>
+
+
+    </>
   );
 }
 
