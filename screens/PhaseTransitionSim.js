@@ -18,7 +18,7 @@ export default function PhaseTransitionSim({ width = 70, height = 70, phase = 's
       case 'liquid':
         return 120;
       case 'gas':
-        return 120;
+        return 175;
       case 'sublimation':
         return 120;
       default:
@@ -29,7 +29,7 @@ export default function PhaseTransitionSim({ width = 70, height = 70, phase = 's
   const videoSize = getVideoSize();
   const offset = (videoSize - 100) / 2;
   // Move solid a bit higher, but not sublimation
-  const topOffset = phase === 'solid' ? `-${offset + 10}%` : `-${offset}%`;
+  const topOffset = phase === 'solid' ? `-${offset + 10}%` : (phase === 'gas' || phase === 'sublimation') ? `-${offset + 15}%` : `-${offset}%`;
 
   return (
     <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>

@@ -17,11 +17,12 @@ const phaseColors = {
   Solid: "#4a90e2",
   Liquid: "#7ed957",
   Gas: "#ffa500",
+  Supercritical: "#ff7eeb",
 };
 
 function MoleculeSim({ phase, width = 70, height = 70, moleculeRadius, moleculeSpacing }) {
   const MAX_MOLS = 9;
-  const count = phase === "Solid" ? 9 : phase === "Liquid" ? 8 : 6;
+  const count = phase === "Solid" ? 9 : phase === "Liquid" ? 8 : phase === "Supercritical" ? 8 : 6;
   const progress = useSharedValue(0);
   const transitionProgress = useSharedValue(0);
   const mols = useRef(
@@ -128,6 +129,27 @@ function MoleculeSim({ phase, width = 70, height = 70, moleculeRadius, moleculeS
           cx: mols[i].x.value,
           cy: mols[i].y.value,
         };
+      } else if (phase === "Supercritical") {
+        // Supercritical: extremely compressed - appears as a dot
+        let nx = mols[i].x.value + mols[i].vx * mols[i].dirX * 0.5; // Minimal movement
+        let ny = mols[i].y.value + mols[i].vy * mols[i].dirY * 0.5; // Minimal movement
+
+        // Extremely restricted boundaries - dot-like appearance
+        const margin = 45; // Very large margin to create tiny movement area
+        if (nx < margin || nx > width - margin) mols[i].dirX *= -1;
+        if (ny < margin || ny > height - margin) mols[i].dirY *= -1;
+
+        // Update position with extremely restricted bounds
+        const newX = Math.max(margin, Math.min(nx, width - margin));
+        const newY = Math.max(margin, Math.min(ny, height - margin));
+
+        mols[i].x.value = newX;
+        mols[i].y.value = newY;
+
+        return {
+          cx: mols[i].x.value,
+          cy: mols[i].y.value,
+        };
       } else {
         let nx = mols[i].x.value + mols[i].vx * mols[i].dirX * 4;
         let ny = mols[i].y.value + mols[i].vy * mols[i].dirY * 4;
@@ -184,11 +206,11 @@ function MoleculeSim({ phase, width = 70, height = 70, moleculeRadius, moleculeS
       {[...Array(count)].map((_, i) => (
         <AnimatedCircle
           key={i}
-          r={moleculeRadius !== undefined ? moleculeRadius : (phase === "Solid" ? 7 : phase === "Liquid" ? 7 : 6)}
+          r={moleculeRadius !== undefined ? moleculeRadius : (phase === "Solid" ? 7 : phase === "Liquid" ? 7 : phase === "Supercritical" ? 6.5 : 6)}
           fill={phaseColors[phase]}
           stroke="#222"
           strokeWidth="1.5"
-          opacity={phase === "Gas" ? 0.8 : 1}
+          opacity={phase === "Gas" ? 0.8 : phase === "Supercritical" ? 0.9 : 1}
           animatedProps={animatedPropsArr[i]}
         />
       ))}

@@ -7,28 +7,52 @@ import { useButtonSound } from '../hooks/useButtonSound';
 import { useTheme } from '../components/ThemeContext';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
-const definitions = [
-  { term: 'Boiling', def: 'The change from liquid to gas.', icon: '🔥' },
-  { term: 'Boiling Point', def: 'The temperature at which a liquid changes to a gas.', icon: '🌡️' },
-  { term: 'Condensation', def: 'The process in which the physical state of matter changes from gaseous state to liquid state.', icon: '💧' },
-  { term: 'Critical Point', def: 'The point in temperature and pressure on a phase diagram where the liquid and gaseous phases of a substance merge together into a single phase.', icon: '⚡' },
-  { term: 'Deposition', def: 'The change from a gaseous state directly to solid state.', icon: '❄️' },
-  { term: 'Evaporation', def: 'The change of matter from the liquid state to gas state.', icon: '☁️' },
-  { term: 'Freezing', def: 'When the liquid state changes back to a solid state.', icon: '🧊' },
-  { term: 'Fusion', def: 'Is when a substance goes from a liquid to a solid state, the reverse of melting.', icon: '❄️' },
-  { term: 'Gas', def: 'A state of matter with neither fixed shape nor volume.', icon: '💨' },
-  { term: 'Kinetic Energy', def: 'Refers to the movement and vibration of particles in a substance, which increases or decreases as energy is added or removed, leading to changes in state.', icon: '⚡' },
-  { term: 'Liquid', def: 'A state of matter with fixed volume but not fixed shape.', icon: '🌊' },
-  { term: 'Matter', def: 'Is anything that has mass and occupies space and cannot always be seen. It occurs in three states, the solid, liquid and gas.', icon: '🔬' },
-  { term: 'Melting', def: 'The change from solid to liquid.', icon: '🫠' },
-  { term: 'Phase Boundary', def: 'A line on a phase diagram that separates two phases.', icon: '📐' },
-  { term: 'Phase Change', def: 'A change from one state to another without changing the chemical composition of a substance.', icon: '🔄' },
-  { term: 'Physical Change', def: 'A change in one or more physical properties of a matter without changing its chemical properties.', icon: '🔄' },
-  { term: 'Solid', def: 'A state of matter with fixed shape and volume.', icon: '🧊' },
-  { term: 'Sublimation', def: 'When solid state directly changes to gas without passing the liquid state.', icon: '✨' },
-  { term: 'Triple Point', def: 'The temperature and pressure at which all three phases (solid, liquid, gas) coexist.', icon: '🎯' },
-  { term: 'Pressure', def: 'Pressure is the force exerted per unit area on a substance, influencing phase transitions like melting and boiling points.', icon: '💨' },
-  { term: 'Temperature', def: 'Temperature measures the average kinetic energy of particles in a substance, determining phase transitions like melting, boiling, and freezing.', icon: '🌡️ ' },
+const definitionCategories = [
+  {
+    title: 'States of Matter',
+    icon: '🔬',
+    definitions: [
+      { term: 'Matter', def: 'Is anything that has mass and occupies space and cannot always be seen. It occurs in three states, the solid, liquid and gas.', icon: '🔬' },
+      { term: 'Solid', def: 'A state of matter with fixed shape and volume.', icon: '🧊' },
+      { term: 'Liquid', def: 'A state of matter with fixed volume but not fixed shape.', icon: '🌊' },
+      { term: 'Gas', def: 'A state of matter with neither fixed shape nor volume.', icon: '💨' },
+    ]
+  },
+  {
+    title: 'Phase Changes',
+    icon: '🔄',
+    definitions: [
+      { term: 'Phase Change', def: 'A change from one state to another without changing the chemical composition of a substance.', icon: '🔄' },
+      { term: 'Melting', def: 'The change from solid to liquid.', icon: '🫠' },
+      { term: 'Freezing', def: 'When the liquid state changes back to a solid state.', icon: '🧊' },
+      { term: 'Fusion', def: 'Is when a substance goes from a liquid to a solid state, the reverse of melting.', icon: '❄️' },
+      { term: 'Evaporation', def: 'The change of matter from the liquid state to gas state.', icon: '☁️' },
+      { term: 'Boiling', def: 'The change from liquid to gas.', icon: '🔥' },
+      { term: 'Condensation', def: 'The process in which the physical state of matter changes from gaseous state to liquid state.', icon: '💧' },
+      { term: 'Sublimation', def: 'When solid state directly changes to gas without passing the liquid state.', icon: '✨' },
+      { term: 'Deposition', def: 'The change from a gaseous state directly to solid state.', icon: '❄️' },
+    ]
+  },
+  {
+    title: 'Phase Diagram Concepts',
+    icon: '📊',
+    definitions: [
+      { term: 'Phase Boundary', def: 'A line on a phase diagram that separates two phases.', icon: '📐' },
+      { term: 'Critical Point', def: 'The point in temperature and pressure on a phase diagram where the liquid and gaseous phases of a substance merge together into a single phase.', icon: '⚡' },
+      { term: 'Triple Point', def: 'The temperature and pressure at which all three phases (solid, liquid, gas) coexist.', icon: '🎯' },
+    ]
+  },
+  {
+    title: 'Physical Concepts',
+    icon: '🧪',
+    definitions: [
+      { term: 'Physical Change', def: 'A change in one or more physical properties of a matter without changing its chemical properties.', icon: '🔄' },
+      { term: 'Kinetic Energy', def: 'Refers to the movement and vibration of particles in a substance, which increases or decreases as energy is added or removed, leading to changes in state.', icon: '⚡' },
+      { term: 'Pressure', def: 'Pressure is the force exerted per unit area on a substance, influencing phase transitions like melting and boiling points.', icon: '💨' },
+      { term: 'Temperature', def: 'Temperature measures the average kinetic energy of particles in a substance, determining phase transitions like melting, boiling, and freezing.', icon: '🌡️ ' },
+      { term: 'Boiling Point', def: 'The temperature at which a liquid changes to a gas.', icon: '🌡️' },
+    ]
+  }
 ];
 
 export default function DefinitionScreen() {
@@ -37,7 +61,7 @@ export default function DefinitionScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const blockAnims = useRef(definitions.map(() => new Animated.Value(0))).current;
+  const blockAnims = useRef(definitionCategories.flatMap(category => category.definitions).map(() => new Animated.Value(0))).current;
   const handlePress = useButtonSound();
 
   // Verify reactivity with useEffect
@@ -139,43 +163,84 @@ export default function DefinitionScreen() {
           elevation: 2,
         }]} />
 
-        {definitions.map(({ term, def, icon }, index) => (
-          <Animated.View 
-            key={index} 
-            style={[
-              styles.definitionBlock,
-              {
-                backgroundColor: theme.cardBackground,
-                borderColor: theme.primaryAccent,
+
+        {definitionCategories.map((category, categoryIndex) => (
+          <View key={categoryIndex}>
+            {/* Category Header */}
+            <Animated.View 
+              style={[
+                styles.categoryHeader,
+                {
+                  backgroundColor: theme.buttonPrimary,
+                  borderColor: theme.primaryAccent,
+                  shadowColor: theme.shadowColor,
+                  elevation: 6,
+                  opacity: fadeAnim,
+                  transform: [
+                    { translateY: slideAnim },
+                    { scale: scaleAnim }
+                  ]
+                }
+              ]}
+            >
+              <Text style={styles.categoryIcon}>{category.icon}</Text>
+              <Text style={[styles.categoryTitle, { color: theme.titleText }]}>{category.title}</Text>
+            </Animated.View>
+
+            {/* Category Definitions */}
+            {category.definitions.map(({ term, def, icon }, index) => {
+              const globalIndex = definitionCategories
+                .slice(0, categoryIndex)
+                .reduce((acc, cat) => acc + cat.definitions.length, 0) + index;
+              
+              return (
+                <Animated.View 
+                  key={`${categoryIndex}-${index}`} 
+                  style={[
+                    styles.definitionBlock,
+                    {
+                      backgroundColor: theme.cardBackground,
+                      borderColor: theme.primaryAccent,
+                      shadowColor: theme.shadowColor,
+                      elevation: 5,
+                      opacity: blockAnims[globalIndex],
+                      transform: [
+                        { 
+                          translateY: blockAnims[globalIndex].interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [50, 0]
+                          })
+                        },
+                        {
+                          scale: blockAnims[globalIndex].interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.95, 1]
+                          })
+                        }
+                      ]
+                    }
+                  ]}
+                >
+                  <View style={[styles.termRow, { 
+                    backgroundColor: theme.buttonSecondary,
+                    borderColor: theme.borderColor,
+                  }]}>
+                    <Text style={styles.termIcon}>{icon}</Text>
+                    <Text style={[styles.term, { color: theme.titleText }]}>{term}</Text>
+                  </View>
+                  <Text style={[styles.definition, { color: theme.subtitleText }]}>{def}</Text>
+                </Animated.View>
+              );
+            })}
+            
+            {/* Category separator */}
+            {categoryIndex < definitionCategories.length - 1 && (
+              <View style={[styles.categorySeparator, { 
+                backgroundColor: theme.borderColor,
                 shadowColor: theme.shadowColor,
-                elevation: 5,
-                opacity: blockAnims[index],
-                transform: [
-                  { 
-                    translateY: blockAnims[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [50, 0]
-                    })
-                  },
-                  {
-                    scale: blockAnims[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.95, 1]
-                    })
-                  }
-                ]
-              }
-            ]}
-          >
-            <View style={[styles.termRow, { 
-              backgroundColor: theme.buttonSecondary,
-              borderColor: theme.borderColor,
-            }]}>
-              <Text style={styles.termIcon}>{icon}</Text>
-              <Text style={[styles.term, { color: theme.titleText }]}>{term}</Text>
-            </View>
-            <Text style={[styles.definition, { color: theme.subtitleText }]}>{def}</Text>
-          </Animated.View>
+              }]} />
+            )}
+          </View>
         ))}
       </ScrollView>
     </View>
@@ -303,5 +368,61 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: wp('1'),
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('2'),
+    marginTop: hp('3'),
+    padding: wp('3'),
+    borderRadius: wp('4'),
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: wp('2'),
+  },
+  categoryIcon: {
+    fontSize: wp('6'),
+    marginRight: wp('2'),
+  },
+  categoryTitle: {
+    fontSize: wp('5'),
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  categoryCounter: {
+    paddingHorizontal: wp('2'),
+    paddingVertical: wp('1'),
+    borderRadius: wp('2'),
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    minWidth: wp('8'),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterText: {
+    fontSize: wp('3.5'),
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
+  },
+  categoriesIntro: {
+    fontSize: wp('4'),
+    textAlign: 'center',
+    marginBottom: hp('2'),
+    fontStyle: 'italic',
+    opacity: 0.8,
+    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif',
+  },
+  categorySeparator: {
+    height: 1,
+    marginVertical: hp('2'),
+    borderRadius: 0.5,
+    opacity: 0.6,
   },
 });

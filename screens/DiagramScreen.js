@@ -477,7 +477,7 @@ function MoleculeSim({ phase, width = 70, height = 70 }) {
   const MAX_MOLS = 9;
   // Map any ice phase to "Solid" for animation, and handle Critical phase
   const animationPhase = phase.startsWith("Ice") ? "Solid" : phase;
-  const count = animationPhase === "Solid" ? 9 : animationPhase === "Liquid" ? 8 : animationPhase === "Critical" ? 7 : 6;
+  const count = animationPhase === "Solid" ? 9 : animationPhase === "Liquid" ? 8 : animationPhase === "Supercritical" ? 8 : animationPhase === "Critical" ? 7 : 6;
   const progress = useSharedValue(0);
   const transitionProgress = useSharedValue(0);
   const mols = useRef(
@@ -582,6 +582,27 @@ function MoleculeSim({ phase, width = 70, height = 70 }) {
           cx: mols[i].x.value,
           cy: mols[i].y.value,
         };
+      } else if (animationPhase === "Supercritical") {
+        // Supercritical: compressed gas behavior with slightly reduced speed
+        let nx = mols[i].x.value + mols[i].vx * mols[i].dirX * 3; // Slightly slower than gas
+        let ny = mols[i].y.value + mols[i].vy * mols[i].dirY * 3; // Slightly slower than gas
+
+        // Restricted boundaries - compressed but larger area
+        const margin = 25; // Reduced from 30 to create even larger movement area
+        if (nx < margin || nx > width - margin) mols[i].dirX *= -1;
+        if (ny < margin || ny > height - margin) mols[i].dirY *= -1;
+
+        // Update position with extremely restricted bounds
+        const newX = Math.max(margin, Math.min(nx, width - margin));
+        const newY = Math.max(margin, Math.min(ny, height - margin));
+
+        mols[i].x.value = newX;
+        mols[i].y.value = newY;
+
+        return {
+          cx: mols[i].x.value,
+          cy: mols[i].y.value,
+        };
       } else {
         let nx = mols[i].x.value + mols[i].vx * mols[i].dirX * 4;
         let ny = mols[i].y.value + mols[i].vy * mols[i].dirY * 4;
@@ -638,11 +659,11 @@ function MoleculeSim({ phase, width = 70, height = 70 }) {
       {[...Array(count)].map((_, i) => (
         <AnimatedCircle
           key={i}
-          r={animationPhase === "Solid" ? 7 : animationPhase === "Liquid" ? 7 : 6}
+          r={animationPhase === "Solid" ? 7 : animationPhase === "Liquid" ? 7 : animationPhase === "Supercritical" ? 6.5 : 6}
           fill={phaseColors[animationPhase]}
           stroke="#222"
           strokeWidth="1.5"
-          opacity={animationPhase === "Gas" ? 0.8 : 1}
+          opacity={animationPhase === "Gas" ? 0.8 : animationPhase === "Supercritical" ? 0.9 : 1}
           animatedProps={animatedPropsArr[i]}
         />
       ))}
@@ -1731,6 +1752,47 @@ export default function DiagramScreen() {
       // For temperatures above critical point, use linear mapping
       return stretchedT;
     }
+  };
+
+  // Function to get the correct display phase name when link is on
+  const getDisplayPhaseName = () => {
+    if (!isLinked) {
+      return phase;
+    }
+    
+    // Triple point
+    if (Math.abs(temperature - T_TRIPLE) < 0.01 && Math.abs(pressure - P_TRIPLE) < 0.001) {
+      return "Triple Point";
+    }
+    
+    // Sublimation: below triple point line
+    if (temperature < T_TRIPLE && pressure < sublimationPressure(temperature) + 0.02) {
+      return "Sublimation";
+    }
+    
+    // Fusion: vertical segment from triple point to freezing point
+    if (temperature <= T_TRIPLE && temperature >= 273.15 && pressure >= P_TRIPLE && pressure <= 1) {
+      return "Fusion";
+    }
+    
+    // Additional fusion case: between 0.007 and 0.018 atm
+    if (temperature <= T_TRIPLE && temperature >= 273.15 && pressure >= 0.007 && pressure <= 0.018) {
+      return "Fusion";
+    }
+    
+    // Vaporization: from triple point up to critical point
+    if (temperature >= T_TRIPLE && temperature <= T_CRITICAL && 
+        Math.abs(pressure - getVisualCurvePressure(temperature)) < 0.02) {
+      return "Vaporization";
+    }
+    
+    // Dramatically extended fusion
+    if (temperature <= T_TRIPLE + 1 && Math.abs(pressure - accurateFusionCurve(temperature)) < 0.06) {
+      return "Fusion";
+    }
+    
+    // Default: return the original phase
+    return phase;
   };
 
   // Add snapping function for important temperature points
@@ -3427,7 +3489,7 @@ export default function DiagramScreen() {
                     },
                   ]}
                 >
-                  {phase}
+                  {getDisplayPhaseName()}
                 </Text>
               </View>
             </View>
@@ -3486,14 +3548,14 @@ export default function DiagramScreen() {
                 // Default: single phase
                 return (
                   <MoleculeSim
-                    phase={phase === "Supercritical" || phase === "Critical" ? "Gas" : phase}
+                    phase={phase === "Supercritical" || phase === "Critical" ? "Supercritical" : phase}
                     width={moleculeSize}
                     height={moleculeSize}
                   />
                 );
-              })() : (
+              })(              ) : (
                 <MoleculeSim
-                  phase={phase === "Supercritical" || phase === "Critical" ? "Gas" : phase}
+                  phase={phase === "Supercritical" || phase === "Critical" ? "Supercritical" : phase}
                   width={moleculeSize}
                   height={moleculeSize}
                 />
